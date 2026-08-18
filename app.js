@@ -126,7 +126,8 @@ function icon(name) {
     edit: '<path d="M13.4 3.6a1.9 1.9 0 0 1 2.7 2.7L7.3 15.1l-3.8 1 1-3.8z"/>',
     trash: '<path d="M4 6h12M8 6V4.6A1.4 1.4 0 0 1 9.4 3.2h1.2A1.4 1.4 0 0 1 12 4.6V6M6.2 6l.6 9.4a1.5 1.5 0 0 0 1.5 1.5h3.4a1.5 1.5 0 0 0 1.5-1.5L13.8 6"/>',
     eye: '<path d="M2 10s3-5.4 8-5.4 8 5.4 8 5.4-3 5.4-8 5.4-8-5.4-8-5.4Z"/><circle cx="10" cy="10" r="2.3"/>',
-    check: '<path d="M4 10.5l4 4 8-9"/>'
+    check: '<path d="M4 10.5l4 4 8-9"/>',
+    menu: '<path d="M3 5h14M3 10h14M3 15h14"/>'
   };
   return `<svg viewBox="0 0 20 20" class="icon-sm">${paths[name] || ''}</svg>`;
 }
@@ -294,6 +295,8 @@ function setView(id) {
   if (ViewActions[id]) ViewActions[id](actionsEl);
   if (ViewRenderers[id]) ViewRenderers[id]();
   updatePendenciasBadge();
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar) sidebar.classList.remove('open');
 }
 
 function refreshCurrentView() {
@@ -447,7 +450,24 @@ function resetarSistema() {
   toast('Dados apagados');
 }
 
+function initMobileMenu() {
+  const topbar = document.querySelector('.topbar');
+  if (topbar && !document.getElementById('btn-mobile-toggle')) {
+    const btn = document.createElement('button');
+    btn.id = 'btn-mobile-toggle';
+    btn.className = 'icon-btn';
+    btn.innerHTML = icon('menu');
+    btn.style.marginRight = '12px';
+    btn.addEventListener('click', () => {
+      const sidebar = document.querySelector('.sidebar');
+      if (sidebar) sidebar.classList.toggle('open');
+    });
+    topbar.insertBefore(btn, topbar.firstChild);
+  }
+}
+
 function bindGlobalEvents() {
+  initMobileMenu();
   document.querySelectorAll('.nav-item').forEach(btn => btn.addEventListener('click', () => setView(btn.dataset.view)));
   document.querySelectorAll('[data-view-link]').forEach(btn => btn.addEventListener('click', () => setView(btn.dataset.viewLink)));
   document.getElementById('modal-close').addEventListener('click', closeModal);
