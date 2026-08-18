@@ -54,11 +54,17 @@ function initAuth() {
   else mostrarLogin();
 }
 
+function setSidebarUser(usuario) {
+  document.getElementById('sidebar-user-name').textContent = `${usuario.nome} ${usuario.sobrenome}`;
+  document.getElementById('sidebar-user-role').textContent = '@' + usuario.username;
+  const iniciais = ((usuario.nome || '')[0] || '') + ((usuario.sobrenome || '')[0] || '');
+  document.getElementById('sidebar-user-avatar').textContent = (iniciais || '–').toUpperCase();
+}
+
 function entrarNoApp(usuario) {
   document.getElementById('auth-screen').hidden = true;
   document.getElementById('app').hidden = false;
-  document.getElementById('sidebar-user-name').textContent = `${usuario.nome} ${usuario.sobrenome}`;
-  document.getElementById('sidebar-user-role').textContent = '@' + usuario.username;
+  setSidebarUser(usuario);
   applyConfigToUI();
   setView('painel');
 }
@@ -277,7 +283,7 @@ async function salvarUsuario(id) {
     toast('Usuário atualizado');
     const atual = getUsuarioLogado();
     if (atual && atual.id === id) {
-      document.getElementById('sidebar-user-name').textContent = `${nome} ${sobrenome}`;
+      setSidebarUser(atual);
     }
   } else {
     const username = gerarUsernameUnico(db, nome, sobrenome);
