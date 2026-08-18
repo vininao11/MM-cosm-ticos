@@ -62,7 +62,7 @@ a { color: inherit; }
   min-height: 100vh;
 }
 
-[hidden] { display: none !important; }
+#app[hidden] { display: none; }
 
 .sidebar {
   background: var(--wine-900);
@@ -673,6 +673,7 @@ select {
 }
 
 .auth-screen { position: fixed; inset: 0; background: var(--wine-900); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 4000; }
+.auth-screen[hidden] { display: none !important; }
 .auth-card { background: var(--paper); border-radius: var(--radius-lg); padding: 40px 36px; width: 100%; max-width: 380px; box-shadow: var(--shadow-pop); }
 .auth-brand { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 26px; text-align: center; }
 .auth-brand .brand-mark { width: 54px; height: 54px; font-size: 18px; border-radius: 16px; }
