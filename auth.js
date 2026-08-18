@@ -1,9 +1,19 @@
 const SESSION_KEY = 'mmg_session';
 
 async function hashSenha(senha) {
-  const enc = new TextEncoder().encode(senha);
-  const buf = await crypto.subtle.digest('SHA-256', enc);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    const enc = new TextEncoder().encode(senha);
+    const buf = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  
+  let hash = 0;
+  for (let i = 0; i < senha.length; i++) {
+    const char = senha.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return 'local_' + Math.abs(hash).toString(16);
 }
 
 function normalizarTexto(s) {
