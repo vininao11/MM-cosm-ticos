@@ -232,7 +232,19 @@ function renderChart(container, labels, series) {
   const groupW = innerW / labels.length;
   const barGap = 5;
   const barW = Math.max(4, (groupW - barGap * (series.length + 1)) / series.length);
+  const gradId0 = 'grad-a-' + (container.id || 'c');
+  const gradId1 = 'grad-b-' + (container.id || 'c');
   let svg = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">`;
+  svg += `<defs>
+    <linearGradient id="${gradId0}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#B48DF8"/>
+      <stop offset="100%" stop-color="#7C6CF0"/>
+    </linearGradient>
+    <linearGradient id="${gradId1}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9DB4E8"/>
+      <stop offset="100%" stop-color="#4E6BB5"/>
+    </linearGradient>
+  </defs>`;
   svg += `<text class="chart-label" x="${padL}" y="12" text-anchor="start">até ${formatBRL(max)}</text>`;
   [0.25, 0.5, 0.75, 1].forEach(f => {
     const y = padT + innerH - innerH * f;
@@ -246,14 +258,15 @@ function renderChart(container, labels, series) {
       const x = gx + barGap + si * (barW + barGap);
       const y = padT + innerH - barH;
       const cls = si === 0 ? 'chart-bar' : 'chart-bar-b';
-      svg += `<rect class="${cls}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(barH, 0).toFixed(1)}" rx="3"><title>${escapeHTML(label)} · ${escapeHTML(s.name)}: ${formatBRL(val)}</title></rect>`;
+      const fill = si === 0 ? `url(#${gradId0})` : `url(#${gradId1})`;
+      svg += `<rect class="${cls}" fill="${fill}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(barH, 0).toFixed(1)}" rx="4"><title>${escapeHTML(label)} · ${escapeHTML(s.name)}: ${formatBRL(val)}</title></rect>`;
     });
     svg += `<text class="chart-label" x="${(gx + groupW / 2).toFixed(1)}" y="${h - 8}" text-anchor="middle">${escapeHTML(label)}</text>`;
   });
   svg += '</svg>';
   container.innerHTML = svg;
   if (series.length > 1) {
-    container.insertAdjacentHTML('beforeend', `<div class="chart-legend">${series.map((s, si) => `<span><i style="background:${si === 0 ? 'var(--rose-200)' : '#DCE3F0'}"></i>${escapeHTML(s.name)}</span>`).join('')}</div>`);
+    container.insertAdjacentHTML('beforeend', `<div class="chart-legend">${series.map((s, si) => `<span><i style="background:${si === 0 ? 'var(--accent)' : '#6C8FD9'}"></i>${escapeHTML(s.name)}</span>`).join('')}</div>`);
   }
 }
 
