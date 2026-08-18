@@ -36,19 +36,19 @@ function renderPainel() {
 
   const baixos = db.estoque.filter(p => lowStock(p, db));
   document.getElementById('painel-estoque-baixo').innerHTML = baixos.length
-    ? baixos.slice(0, 8).map(p => `<div class="stack-row"><span>${escapeHTML(p.nome)}</span><strong>${p.qtd} un.</strong></div>`).join('')
+    ? baixos.slice(0, 8).map(p => `<div class="stack-row warn"><span class="rank-dot"></span><span class="stack-name">${escapeHTML(p.nome)}</span><strong>${p.qtd} un.</strong></div>`).join('')
     : '<div class="stack-empty">Nenhum produto abaixo do mínimo</div>';
 
   const recentes = db.vendas.slice().sort((a, b) => (b.criadoEm || '').localeCompare(a.criadoEm || '')).slice(0, 6);
   document.getElementById('painel-vendas-recentes').innerHTML = recentes.length
     ? recentes.map(v => `<tr><td class="mono">${escapeHTML(v.numero)}</td><td>${formatDateBR(v.data)}</td><td>${escapeHTML(v.cliente || '-')}</td><td class="num">${formatBRL(v.total)}</td><td><span class="badge badge-${v.status}">${v.status === 'pago' ? 'Pago' : 'Pendente'}</span></td></tr>`).join('')
-    : '<tr><td colspan="5" style="text-align:center;color:var(--ink-soft);padding:24px">Nenhuma venda registrada ainda</td></tr>';
+    : '<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px">Nenhuma venda registrada ainda</td></tr>';
 
   const contagem = {};
   db.vendas.forEach(v => v.itens.forEach(it => { contagem[it.nome] = (contagem[it.nome] || 0) + it.qtd; }));
   const maisVendidos = Object.entries(contagem).sort((a, b) => b[1] - a[1]).slice(0, 7);
   document.getElementById('painel-mais-vendidos').innerHTML = maisVendidos.length
-    ? maisVendidos.map(([nome, qtd]) => `<div class="stack-row"><span>${escapeHTML(nome)}</span><strong>${qtd} un.</strong></div>`).join('')
+    ? maisVendidos.map(([nome, qtd], i) => `<div class="stack-row"><span class="rank-num">${i + 1}</span><span class="stack-name">${escapeHTML(nome)}</span><strong>${qtd} un.</strong></div>`).join('')
     : '<div class="stack-empty">Ainda não há vendas registradas</div>';
 }
 
@@ -148,7 +148,7 @@ function renderFinanceiro() {
       <td><span class="badge badge-tipo-${m.tipo}">${m.tipo === 'venda' ? 'Venda' : 'Compra'}</span></td>
       <td>${escapeHTML(m.desc)}</td>
       <td><span class="badge badge-pago">Pago</span></td>
-      <td class="num" style="color:${m.valor < 0 ? 'var(--danger)' : 'var(--sage)'}">${m.valor < 0 ? '-' : '+'}${formatBRL(Math.abs(m.valor))}</td>
+      <td class="num" style="color:${m.valor < 0 ? 'var(--danger)' : 'var(--success)'}">${m.valor < 0 ? '-' : '+'}${formatBRL(Math.abs(m.valor))}</td>
     </tr>`).join('');
 }
 
