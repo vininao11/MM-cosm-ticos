@@ -126,7 +126,7 @@ function renderEstoque() {
         <td><strong>${escapeHTML(p.nome)}</strong>${p.marca ? `<div class="kpi-note">${escapeHTML(p.marca)}</div>` : ''}</td>
         <td>${escapeHTML(p.categoria || '-')}</td>
         <td class="mono">${escapeHTML(p.codigo || '-')}</td>
-        <td class="num">${p.qtd}${baixo ? ` <span class="badge badge-baixo">baixo</span>` : ''}</td>
+        <td class="num">${p.qtd}${baixo ? ` <span class="badge badge-baixo">baixo</span>` : ''}<div class="stockbar"><i class="stockbar-fill${baixo ? ' low' : ''}" style="width:${Math.min(100, Math.round((p.qtd / (Math.max(p.minimo ?? db.config.estoqueMinimo, 1) * 3)) * 100))}%"></i></div></td>
         <td class="num">${formatBRL(p.custo)}</td>
         <td class="num">${formatBRL(p.venda)}</td>
         <td class="num">${margem}</td>
