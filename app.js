@@ -297,6 +297,8 @@ function setView(id) {
   updatePendenciasBadge();
   const sidebar = document.querySelector('.sidebar');
   if (sidebar) sidebar.classList.remove('open');
+  const mobileToggle = document.getElementById('mobile-toggle');
+  if (mobileToggle) mobileToggle.setAttribute('aria-expanded', 'false');
 }
 
 function refreshCurrentView() {
@@ -451,19 +453,14 @@ function resetarSistema() {
 }
 
 function initMobileMenu() {
-  const topbar = document.querySelector('.topbar');
-  if (topbar && !document.getElementById('btn-mobile-toggle')) {
-    const btn = document.createElement('button');
-    btn.id = 'btn-mobile-toggle';
-    btn.className = 'icon-btn';
-    btn.innerHTML = icon('menu');
-    btn.style.marginRight = '12px';
-    btn.addEventListener('click', () => {
-      const sidebar = document.querySelector('.sidebar');
-      if (sidebar) sidebar.classList.toggle('open');
-    });
-    topbar.insertBefore(btn, topbar.firstChild);
-  }
+  const btn = document.getElementById('mobile-toggle');
+  const sidebar = document.querySelector('.sidebar');
+  if (!btn || !sidebar) return;
+  btn.setAttribute('aria-expanded', 'false');
+  btn.addEventListener('click', () => {
+    const isOpen = sidebar.classList.toggle('open');
+    btn.setAttribute('aria-expanded', String(isOpen));
+  });
 }
 
 function bindGlobalEvents() {
