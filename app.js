@@ -129,7 +129,11 @@ function icon(name) {
     trash: '<path d="M4 6h12M8 6V4.6A1.4 1.4 0 0 1 9.4 3.2h1.2A1.4 1.4 0 0 1 12 4.6V6M6.2 6l.6 9.4a1.5 1.5 0 0 0 1.5 1.5h3.4a1.5 1.5 0 0 0 1.5-1.5L13.8 6"/>',
     eye: '<path d="M2 10s3-5.4 8-5.4 8 5.4 8 5.4-3 5.4-8 5.4-8-5.4-8-5.4Z"/><circle cx="10" cy="10" r="2.3"/>',
     check: '<path d="M4 10.5l4 4 8-9"/>',
-    menu: '<path d="M3 5h14M3 10h14M3 15h14"/>'
+    menu: '<path d="M3 5h14M3 10h14M3 15h14"/>',
+    search: '<circle cx="8.5" cy="8.5" r="5.2"/><path d="m12.4 12.4 4 4"/>',
+    download: '<path d="M10 3v9M6.5 8.5 10 12l3.5-3.5M4 16.5h12"/>',
+    mail: '<rect x="2.5" y="4" width="15" height="12" rx="2"/><path d="m3.5 5.2 6.5 5.2 6.5-5.2"/>',
+    whatsapp: '<path d="M16.7 9.7a6.6 6.6 0 0 1-9.9 5.7L3 16.5l1.1-3.6A6.6 6.6 0 1 1 16.7 9.7Z"/><path d="M7.1 6.9c.2-.5.6-.6 1-.3l.9.8c.3.3.3.6.1.9l-.5.7c.7 1.2 1.6 2 2.8 2.5l.7-.6c.3-.2.7-.2 1 .1l.8.8c.3.4.2.8-.3 1-1 .5-2 .3-3.1-.2-1.8-.8-3.3-2.3-4.1-4.1-.5-1.1-.7-2.1-.3-3.1Z"/>',
   };
   return `<svg viewBox="0 0 20 20" class="icon-sm">${paths[name] || ''}</svg>`;
 }
@@ -178,7 +182,8 @@ function enviarNotaWhatsApp() {
   const item = notaAtual;
   const db = getDB();
   let whats = '';
-  if (item.clienteId) {
+  whats = item.clienteWhatsapp || '';
+  if (!whats && item.clienteId) {
     const cliente = db.clientes.find(c => c.id === item.clienteId);
     if (cliente) whats = cliente.whatsapp || '';
   }
@@ -290,6 +295,11 @@ function setView(id) {
   currentView = id;
   document.querySelectorAll('.nav-item').forEach(btn => btn.classList.toggle('active', btn.dataset.view === id));
   document.querySelectorAll('.view').forEach(sec => sec.classList.toggle('active', sec.id === `view-${id}`));
+  const activeView = document.getElementById(`view-${id}`);
+  if (activeView) {
+    activeView.classList.remove('tab-transition');
+    requestAnimationFrame(() => activeView.classList.add('tab-transition'));
+  }
   const meta = VIEW_META[id];
   document.getElementById('page-title').textContent = meta[0];
   document.getElementById('page-subtitle').textContent = meta[1];
