@@ -62,8 +62,16 @@ function setSidebarUser(usuario) {
 }
 
 function entrarNoApp(usuario) {
-  document.getElementById('auth-screen').hidden = true;
-  document.getElementById('app').hidden = false;
+  const auth = document.getElementById('auth-screen');
+  const app = document.getElementById('app');
+  auth.classList.add('auth-leave');
+  setTimeout(() => {
+    auth.hidden = true;
+    auth.classList.remove('auth-leave');
+    app.hidden = false;
+    app.classList.add('app-enter');
+    requestAnimationFrame(() => app.classList.remove('app-enter'));
+  }, 260);
   setSidebarUser(usuario);
   applyConfigToUI();
   setView('painel');
@@ -82,57 +90,191 @@ function fazerLogout() {
   mostrarLogin();
 }
 
+let loginDraftUsername = '';
+const AUTH_ATTEMPTS_KEY = 'mmg_auth_attempts_v1';
+const AUTH_MAX_ATTEMPTS = 5;
+const AUTH_LOCK_MS = 15 * 60 * 1000;
+
+function getAuthAttempts() {
+  try { return JSON.parse(localStorage.getItem(AUTH_ATTEMPTS_KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveAuthAttempts(data) {
+  localStorage.setItem(AUTH_ATTEMPTS_KEY, JSON.stringify(data));
+}
+function getLockInfo(username) {
+  const attempts = getAuthAttempts();
+  const rec = attempts[username] || { count: 0, lockedUntil: 0 };
+  if (rec.lockedUntil && Date.now() >= rec.lockedUntil) {
+    delete attempts[username];
+    saveAuthAttempts(attempts);
+    return { count: 0, lockedUntil: 0 };
+  }
+  return rec;
+}
+function registrarFalhaLogin(username) {
+  const attempts = getAuthAttempts();
+  const rec = attempts[username] || { count: 0, lockedUntil: 0 };
+  rec.count = Number(rec.count || 0) + 1;
+  if (rec.count >= AUTH_MAX_ATTEMPTS) rec.lockedUntil = Date.now() + AUTH_LOCK_MS;
+  attempts[username] = rec;
+  saveAuthAttempts(attempts);
+  return rec;
+}
+function limparFalhasLogin(username) {
+  const attempts = getAuthAttempts();
+  delete attempts[username];
+  saveAuthAttempts(attempts);
+}
+function formatTempoBloqueio(ms) {
+  const min = Math.max(1, Math.ceil(ms / 60000));
+  return `${min} minuto${min === 1 ? '' : 's'}`;
+}
+
 function mostrarLogin(erro) {
+  loginDraftUsername = '';
   document.getElementById('auth-body').innerHTML = `
-    <div class="auth-body">
-      <h3>Entrar</h3>
+    <div class="auth-body auth-step-card">
+      <div class="auth-progress"><span class="active"></span><span></span></div>
+      <div class="auth-step-label">Passo 1 de 2</div>
+      <h3>Entrar no sistema</h3>
       ${erro ? `<div class="auth-error">${escapeHTML(erro)}</div>` : ''}
+      <p class="auth-hint">Informe seu usuário para continuar.</p>
       <label class="auth-field"><span>Usuário</span><input type="text" id="login-username" placeholder="nome.sobrenome" autocomplete="username"></label>
-      <label class="auth-field"><span>Senha</span><input type="password" id="login-senha" autocomplete="current-password"></label>
-      <button class="btn btn-primary btn-block" id="btn-fazer-login">Entrar</button>
+      <button class="btn btn-primary btn-block" id="btn-login-continuar">Continuar</button>
       <button class="auth-link" id="btn-esqueci-senha">Esqueci minha senha</button>
     </div>`;
+  document.getElementById('btn-login-continuar').addEventListener('click', loginPasso2);
+  document.getElementById('login-username').addEventListener('keydown', e => { if (e.key === 'Enter') loginPasso2(); });
+  document.getElementById('btn-esqueci-senha').addEventListener('click', mostrarRecuperar1);
+  document.getElementById('login-username').focus();
+}
+
+function loginPasso2() {
+  const username = document.getElementById('login-username').value.trim().toLowerCase();
+  if (!username) { mostrarLogin('Informe seu usuário'); return; }
+  const db = getDB();
+  const usuario = db.usuarios.find(u => u.username === username);
+  if (!usuario) { mostrarLogin('Usuário não encontrado'); return; }
+  const lock = getLockInfo(username);
+  if (lock.lockedUntil && Date.now() < lock.lockedUntil) {
+    mostrarLogin(`Acesso temporariamente bloqueado. Tente novamente em ${formatTempoBloqueio(lock.lockedUntil - Date.now())}.`);
+    return;
+  }
+  loginDraftUsername = username;
+  document.getElementById('auth-body').innerHTML = `
+    <div class="auth-body auth-step-card auth-step-next">
+      <div class="auth-progress"><span class="active"></span><span class="active"></span></div>
+      <div class="auth-step-label">Passo 2 de 2</div>
+      <h3>Digite sua senha</h3>
+      <p class="auth-hint">Conta: <strong>${escapeHTML(usuario.nome)} ${escapeHTML(usuario.sobrenome)}</strong></p>
+      <label class="auth-field"><span>Senha</span><input type="password" id="login-senha" autocomplete="current-password"></label>
+      <div class="auth-attempts" id="login-attempts"></div>
+      <button class="btn btn-primary btn-block" id="btn-fazer-login">Entrar</button>
+      <button class="auth-link" id="btn-voltar-login">Voltar</button>
+      <button class="auth-link" id="btn-esqueci-senha">Esqueci minha senha</button>
+    </div>`;
+  const restante = Math.max(0, AUTH_MAX_ATTEMPTS - lock.count);
+  document.getElementById('login-attempts').textContent = `Tentativas restantes: ${restante}`;
   document.getElementById('btn-fazer-login').addEventListener('click', fazerLogin);
   document.getElementById('login-senha').addEventListener('keydown', e => { if (e.key === 'Enter') fazerLogin(); });
+  document.getElementById('btn-voltar-login').addEventListener('click', () => mostrarLogin());
   document.getElementById('btn-esqueci-senha').addEventListener('click', mostrarRecuperar1);
-  const campoUser = document.getElementById('login-username');
-  if (campoUser) campoUser.focus();
+  document.getElementById('login-senha').focus();
 }
 
 async function fazerLogin() {
-  const username = document.getElementById('login-username').value.trim().toLowerCase();
-  const senha = document.getElementById('login-senha').value;
-  if (!username || !senha) { mostrarLogin('Preencha usuário e senha'); return; }
+  const username = loginDraftUsername || document.getElementById('login-username')?.value.trim().toLowerCase();
+  const senha = document.getElementById('login-senha')?.value || '';
+  if (!username || !senha) { toast('Preencha a senha', 'error'); return; }
   const db = getDB();
   const usuario = db.usuarios.find(u => u.username === username);
-  if (!usuario) { mostrarLogin('Usuário ou senha inválidos'); return; }
+  if (!usuario) { mostrarLogin('Usuário não encontrado'); return; }
+  const lock = getLockInfo(username);
+  if (lock.lockedUntil && Date.now() < lock.lockedUntil) {
+    mostrarLogin(`Acesso temporariamente bloqueado. Tente novamente em ${formatTempoBloqueio(lock.lockedUntil - Date.now())}.`);
+    return;
+  }
   const hash = await hashSenha(senha);
-  if (hash !== usuario.senhaHash) { mostrarLogin('Usuário ou senha inválidos'); return; }
+  if (hash !== usuario.senhaHash) {
+    const rec = registrarFalhaLogin(username);
+    if (rec.count >= AUTH_MAX_ATTEMPTS) {
+      mostrarLogin(`Você atingiu ${AUTH_MAX_ATTEMPTS} tentativas. O acesso foi bloqueado por 15 minutos.`);
+      return;
+    }
+    const restante = AUTH_MAX_ATTEMPTS - rec.count;
+    loginPasso2();
+    toast(`Senha incorreta. Restam ${restante} tentativa${restante === 1 ? '' : 's'}.`, 'error');
+    return;
+  }
+  limparFalhasLogin(username);
   setSessao(usuario.username);
   registrarLog(db, 'Entrou no sistema', { Usuário: `${usuario.nome} ${usuario.sobrenome}` });
   saveDB(db);
   entrarNoApp(usuario);
 }
 
-function mostrarCriarPrimeiroUsuario() {
-  document.getElementById('auth-body').innerHTML = `
-    <div class="auth-body">
-      <h3>Criar acesso principal</h3>
-      <p class="auth-hint">Este será o primeiro usuário do sistema. Cadastre o restante da equipe depois, em Configurações.</p>
-      <label class="auth-field"><span>Nome</span><input type="text" id="fu-nome"></label>
-      <label class="auth-field"><span>Sobrenome</span><input type="text" id="fu-sobrenome"></label>
-      <label class="auth-field"><span>E-mail (para recuperação de senha)</span><input type="email" id="fu-email"></label>
-      <label class="auth-field"><span>Senha</span><input type="password" id="fu-senha"></label>
-      <label class="auth-field"><span>Confirmar senha</span><input type="password" id="fu-senha2"></label>
-      <button class="btn btn-primary btn-block" id="btn-criar-primeiro">Criar e entrar</button>
-    </div>`;
-  document.getElementById('btn-criar-primeiro').addEventListener('click', criarPrimeiroUsuario);
+let primeiroUsuarioDraft = { nome: '', sobrenome: '', email: '' };
+let primeiroUsuarioStep = 1;
+
+function mostrarCriarPrimeiroUsuario(step = 1) {
+  primeiroUsuarioStep = step;
+  const d = primeiroUsuarioDraft;
+  const body = document.getElementById('auth-body');
+  const steps = [1, 2, 3].map(n => `<span class="${n <= step ? 'active' : ''}"></span>`).join('');
+  if (step === 1) {
+    body.innerHTML = `
+      <div class="auth-body auth-step-card">
+        <div class="auth-progress">${steps}</div><div class="auth-step-label">Passo 1 de 3</div>
+        <h3>Criar acesso principal</h3>
+        <p class="auth-hint">Vamos configurar seu acesso em poucos passos.</p>
+        <div class="auth-two-col">
+          <label class="auth-field"><span>Nome</span><input type="text" id="fu-nome" value="${escapeHTML(d.nome)}" autocomplete="given-name"></label>
+          <label class="auth-field"><span>Sobrenome</span><input type="text" id="fu-sobrenome" value="${escapeHTML(d.sobrenome)}" autocomplete="family-name"></label>
+        </div>
+        <button class="btn btn-primary btn-block" id="btn-fu-continuar">Continuar</button>
+      </div>`;
+    document.getElementById('btn-fu-continuar').addEventListener('click', () => {
+      d.nome = document.getElementById('fu-nome').value.trim();
+      d.sobrenome = document.getElementById('fu-sobrenome').value.trim();
+      if (!d.nome || !d.sobrenome) { toast('Informe nome e sobrenome', 'error'); return; }
+      mostrarCriarPrimeiroUsuario(2);
+    });
+  } else if (step === 2) {
+    body.innerHTML = `
+      <div class="auth-body auth-step-card auth-step-next">
+        <div class="auth-progress">${steps}</div><div class="auth-step-label">Passo 2 de 3</div>
+        <h3>Seus dados de contato</h3>
+        <p class="auth-hint">Este e-mail será usado para recuperação de senha e poderá ser usado futuramente para envio de relatórios.</p>
+        <label class="auth-field"><span>E-mail</span><input type="email" id="fu-email" value="${escapeHTML(d.email)}" placeholder="voce@email.com" autocomplete="email"></label>
+        <div class="btn-row auth-btn-row"><button class="btn btn-ghost" id="btn-fu-voltar">Voltar</button><button class="btn btn-primary" id="btn-fu-email-continuar">Continuar</button></div>
+      </div>`;
+    document.getElementById('btn-fu-voltar').addEventListener('click', () => mostrarCriarPrimeiroUsuario(1));
+    document.getElementById('btn-fu-email-continuar').addEventListener('click', () => {
+      d.email = document.getElementById('fu-email').value.trim();
+      if (!d.email || !/^\S+@\S+\.\S+$/.test(d.email)) { toast('Informe um e-mail válido', 'error'); return; }
+      mostrarCriarPrimeiroUsuario(3);
+    });
+  } else {
+    body.innerHTML = `
+      <div class="auth-body auth-step-card auth-step-next">
+        <div class="auth-progress">${steps}</div><div class="auth-step-label">Passo 3 de 3</div>
+        <h3>Crie sua senha</h3>
+        <p class="auth-hint">Seu login será criado automaticamente como <strong>${escapeHTML(gerarUsername(d.nome, d.sobrenome))}</strong>.</p>
+        <label class="auth-field"><span>Senha</span><input type="password" id="fu-senha" autocomplete="new-password"></label>
+        <label class="auth-field"><span>Confirmar senha</span><input type="password" id="fu-senha2" autocomplete="new-password"></label>
+        <div class="btn-row auth-btn-row"><button class="btn btn-ghost" id="btn-fu-voltar">Voltar</button><button class="btn btn-primary" id="btn-criar-primeiro">Criar e entrar</button></div>
+      </div>`;
+    document.getElementById('btn-fu-voltar').addEventListener('click', () => mostrarCriarPrimeiroUsuario(2));
+    document.getElementById('btn-criar-primeiro').addEventListener('click', criarPrimeiroUsuario);
+    document.getElementById('fu-senha').focus();
+  }
 }
 
 async function criarPrimeiroUsuario() {
-  const nome = document.getElementById('fu-nome').value.trim();
-  const sobrenome = document.getElementById('fu-sobrenome').value.trim();
-  const email = document.getElementById('fu-email').value.trim();
+  const nome = primeiroUsuarioDraft.nome.trim();
+  const sobrenome = primeiroUsuarioDraft.sobrenome.trim();
+  const email = primeiroUsuarioDraft.email.trim();
   const senha = document.getElementById('fu-senha').value;
   const senha2 = document.getElementById('fu-senha2').value;
   if (!nome || !sobrenome) { toast('Informe nome e sobrenome', 'error'); return; }
