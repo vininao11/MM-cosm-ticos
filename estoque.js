@@ -27,6 +27,7 @@ function formProdutoHTML(db, produto) {
       <label class="field"><span>Estoque mínimo</span><input type="number" id="f-prod-min" min="0" step="1" value="${p.minimo ?? db.config.estoqueMinimo}"></label>
       <label class="field"><span>Preço de custo (R$)</span><input type="number" id="f-prod-custo" min="0" step="0.01" value="${p.custo ?? ''}"></label>
       <label class="field"><span>Preço de venda (R$)</span><input type="number" id="f-prod-venda" min="0" step="0.01" value="${p.venda ?? ''}"></label>
+      <label class="field wide"><span>Cliente de referência</span><input type="text" id="f-prod-cliente" value="${escapeHTML(p.clienteReferencia || '')}" placeholder="Nome do cliente relacionado ao controle deste item"></label>
       <label class="field wide file-field"><span>Foto do produto (opcional)</span><input type="file" id="f-prod-imagem" accept="image/*"></label>
     </div>
     <div class="btn-row">
@@ -63,6 +64,7 @@ function salvarProduto(id) {
     minimo: parseNumber(document.getElementById('f-prod-min').value),
     custo: parseNumber(document.getElementById('f-prod-custo').value),
     venda: parseNumber(document.getElementById('f-prod-venda').value),
+    clienteReferencia: document.getElementById('f-prod-cliente').value.trim(),
     imagem: produtoImagemPendente || ''
   };
   const db = getDB();
@@ -126,6 +128,7 @@ function renderEstoque() {
         <td><strong>${escapeHTML(p.nome)}</strong>${p.marca ? `<div class="kpi-note">${escapeHTML(p.marca)}</div>` : ''}</td>
         <td>${escapeHTML(p.categoria || '-')}</td>
         <td class="mono">${escapeHTML(p.codigo || '-')}</td>
+        <td>${escapeHTML(p.clienteReferencia || '-')}</td>
         <td class="num">${p.qtd}${baixo ? ` <span class="badge badge-baixo">baixo</span>` : ''}<div class="stockbar"><i class="stockbar-fill${baixo ? ' low' : ''}" style="width:${Math.min(100, Math.round((p.qtd / (Math.max(p.minimo ?? db.config.estoqueMinimo, 1) * 3)) * 100))}%"></i></div></td>
         <td class="num">${formatBRL(p.custo)}</td>
         <td class="num">${formatBRL(p.venda)}</td>
