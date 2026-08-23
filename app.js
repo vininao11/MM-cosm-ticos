@@ -12,7 +12,8 @@ function defaultDB() {
     compras: [],
     clientes: [],
     usuarios: [],
-    logs: []
+    logs: [],
+    cupons: []
   };
 }
 
@@ -26,6 +27,7 @@ function normalizeDB(raw) {
   db.clientes = Array.isArray(db.clientes) ? db.clientes : [];
   db.usuarios = Array.isArray(db.usuarios) ? db.usuarios : [];
   db.logs = Array.isArray(db.logs) ? db.logs : [];
+  db.cupons = Array.isArray(db.cupons) ? db.cupons : [];
   return db;
 }
 
@@ -279,6 +281,7 @@ const VIEW_META = {
   compras: ['Compras', 'Entradas de mercadoria no estoque'],
   pendencias: ['Pendências', 'Contas a receber e a pagar'],
   financeiro: ['Financeiro', 'Resultado da loja com base nas vendas'],
+  relatorios: ['Relatórios', 'Indicadores e relatórios filtráveis por período'],
   registros: ['Registros', 'Histórico de ações realizadas no sistema'],
   config: ['Configurações', 'Preferências do sistema']
 };
@@ -307,12 +310,52 @@ function refreshCurrentView() {
   renderBrandMark();
 }
 
+function getNotasProximasVencer() {
+  const db = getDB();
+  const hoje = new Date(todayISO() + 'T00:00:00');
+  const limite = new Date(hoje);
+  limite.setDate(limite.getDate() + 7);
+  return [
+    ...db.vendas.filter(v => v.status === 'pendente').map(v => ({ ...v, tipo: 'Venda', pessoa: v.cliente })),
+    ...db.compras.filter(c => c.status === 'pendente').map(c => ({ ...c, tipo: 'Compra', pessoa: c.fornecedor }))
+  ].filter(n => {
+    if (!n.vencimento) return false;
+    const d = new Date(n.vencimento + 'T00:00:00');
+    return d <= limite;
+  }).sort((a,b) => (a.vencimento || '').localeCompare(b.vencimento || ''));
+}
+
+function renderNotificacoes() {
+  const lista = getNotasProximasVencer();
+  const count = document.getElementById('notification-count');
+  if (count) {
+    count.textContent = lista.length;
+    count.hidden = lista.length === 0;
+  }
+  return lista;
+}
+
+function abrirNotificacoes() {
+  const lista = renderNotificacoes();
+  const hoje = todayISO();
+  openModal(`<h3>Notificações</h3>
+    <p class="panel-desc">${lista.length ? 'Notas vencidas ou com vencimento nos próximos 7 dias.' : 'Tudo em dia. Não há notas próximas do vencimento.'}</p>
+    <div class="notification-list">${lista.length ? lista.map(n => {
+      const vencida = n.vencimento < hoje;
+      return `<div class="notification-item ${vencida ? 'overdue' : ''}">
+        <div><strong>${escapeHTML(n.numero)}</strong><span>${escapeHTML(n.tipo)} · ${escapeHTML(n.pessoa || '-')}</span></div>
+        <div class="notification-date">${vencida ? 'Vencida' : 'Vence'} em ${formatDateBR(n.vencimento)}<br><b>${formatBRL(n.total)}</b></div>
+      </div>`;
+    }).join('') : '<div class="stack-empty">Nenhuma pendência de vencimento.</div>'}</div>`);
+}
+
 function updatePendenciasBadge() {
   const db = getDB();
   const count = db.vendas.filter(v => v.status === 'pendente').length + db.compras.filter(c => c.status === 'pendente').length;
   const badge = document.getElementById('nav-badge-pend');
   badge.hidden = count === 0;
   badge.textContent = count;
+  renderNotificacoes();
 }
 
 function renderBrandMark() {
@@ -445,7 +488,7 @@ function importarBackup(e) {
 function resetarSistema() {
   if (!confirm('Isso vai apagar todos os produtos, vendas, compras e clientes salvos neste navegador. Deseja continuar?')) return;
   const db = getDB();
-  db.estoque = []; db.vendas = []; db.compras = []; db.clientes = [];
+  db.estoque = []; db.vendas = []; db.compras = []; db.clientes = []; db.cupons = [];
   registrarLog(db, 'Dados do sistema apagados', {});
   saveDB(db);
   refreshCurrentView();
@@ -465,6 +508,7 @@ function initMobileMenu() {
 
 function bindGlobalEvents() {
   initMobileMenu();
+  document.getElementById('btn-notificacoes')?.addEventListener('click', abrirNotificacoes);
   document.querySelectorAll('.nav-item').forEach(btn => btn.addEventListener('click', () => setView(btn.dataset.view)));
   document.querySelectorAll('[data-view-link]').forEach(btn => btn.addEventListener('click', () => setView(btn.dataset.viewLink)));
   document.getElementById('modal-close').addEventListener('click', closeModal);
@@ -495,5 +539,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initCompras();
   initFinanceiro();
   initRegistros();
+  initRelatorios();
+  renderNotificacoes();
+  setInterval(renderNotificacoes, 60000);
   initAuth();
 });
