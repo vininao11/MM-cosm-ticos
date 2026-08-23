@@ -6,7 +6,7 @@
 <title>M&amp;M Cosméticos · Gestão</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -63,6 +63,10 @@
         <svg viewBox="0 0 20 20" class="nav-icon"><path d="M2.5 15.5 7.2 10l3 2.5 6-7"/><path d="M13 5.5h3.2v3.2"/></svg>
         Financeiro
       </button>
+      <button class="nav-item" data-view="relatorios">
+        <svg viewBox="0 0 20 20" class="nav-icon"><path d="M4 3h12v14H4z"/><path d="M7 7h6M7 10h6M7 13h4"/></svg>
+        Relatórios
+      </button>
       <button class="nav-item" data-view="registros">
         <svg viewBox="0 0 20 20" class="nav-icon"><path d="M5.5 2.5h6l3 3V17.5h-9z"/><path d="M11.5 2.5v3h3"/><path d="M7.5 10.2h5M7.5 13.2h5"/></svg>
         Registros
@@ -93,7 +97,12 @@
           <p id="page-subtitle">Resumo geral da loja</p>
         </div>
       </div>
-      <div class="topbar-actions" id="topbar-actions"></div>
+      <div class="topbar-actions">
+            <button class="notification-btn" id="btn-notificacoes" title="Notificações">
+              <svg class="notification-icon" viewBox="0 0 20 20"><path d="M5.2 8.5a4.8 4.8 0 0 1 9.6 0v3l1.3 1.8H3.9l1.3-1.8z"/><path d="M8 15.2a2.2 2.2 0 0 0 4 0"/></svg><span class="notification-count" id="notification-count" hidden>0</span>
+            </button>
+            <div id="topbar-actions"></div>
+          </div>
     </header>
 
     <div class="view-wrap">
@@ -166,7 +175,7 @@
           </div>
           <div class="table-scroll">
             <table class="table">
-              <thead><tr><th></th><th>Produto</th><th>Categoria</th><th>Código</th><th>Estoque</th><th>Custo</th><th>Venda</th><th>Margem</th><th></th></tr></thead>
+              <thead><tr><th></th><th>Produto</th><th>Categoria</th><th>Código</th><th>Cliente</th><th>Estoque</th><th>Custo</th><th>Venda</th><th>Margem</th><th></th></tr></thead>
               <tbody id="estoque-tbody"></tbody>
             </table>
           </div>
@@ -279,6 +288,41 @@
         </div>
       </section>
 
+      <section class="view" id="view-relatorios">
+        <div class="kpi-row">
+          <div class="kpi"><span class="kpi-label">Vendas no período</span><strong class="kpi-value" id="rel-kpi-vendas">0</strong></div>
+          <div class="kpi"><span class="kpi-label">Receita</span><strong class="kpi-value" id="rel-kpi-receita">R$ 0,00</strong></div>
+          <div class="kpi"><span class="kpi-label">Lucro bruto</span><strong class="kpi-value" id="rel-kpi-lucro">R$ 0,00</strong></div>
+          <div class="kpi"><span class="kpi-label">Itens vendidos</span><strong class="kpi-value" id="rel-kpi-itens">0</strong></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div><h2>Relatório de vendas</h2><p class="panel-desc">Filtre por período e exporte os resultados.</p></div>
+            <div class="report-actions">
+              <button class="btn btn-outline" id="btn-relatorio-csv">Exportar CSV</button>
+              <button class="btn btn-primary" id="btn-relatorio-imprimir">Imprimir / PDF</button>
+            </div>
+          </div>
+          <div class="report-filters">
+            <label class="field"><span>Data inicial</span><input type="date" id="rel-data-inicio"></label>
+            <label class="field"><span>Data final</span><input type="date" id="rel-data-fim"></label>
+            <label class="field"><span>Status</span><select id="rel-status"><option value="">Todos</option><option value="pago">Pago</option><option value="pendente">Pendente</option></select></label>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="panel"><div class="panel-head"><h2>Receita por dia</h2></div><div id="rel-chart" class="chart-mount"></div></div>
+          <div class="panel"><div class="panel-head"><h2>Resumo do período</h2></div><div id="rel-resumo" class="summary-list"></div></div>
+        </div>
+        <div class="panel" id="relatorio-print-area">
+          <div class="panel-head"><h2>Detalhamento</h2></div>
+          <div class="table-scroll"><table class="table">
+            <thead><tr><th>Data</th><th>Nota</th><th>Cliente</th><th>Status</th><th>Itens</th><th>Total</th></tr></thead>
+            <tbody id="rel-tbody"></tbody>
+          </table></div>
+          <p class="empty-hint" id="rel-empty" hidden>Nenhuma venda encontrada no período.</p>
+        </div>
+      </section>
+
       <section class="view" id="view-registros">
         <div class="panel">
           <div class="panel-head">
@@ -381,5 +425,6 @@
 <script src="compras.js"></script>
 <script src="financeiro.js"></script>
 <script src="registros.js"></script>
+<script src="relatorios.js"></script>
 </body>
 </html>
