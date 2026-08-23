@@ -1,212 +1,430 @@
-let carrinhoCompra = [];
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M&amp;M Cosméticos · Gestão</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-function initCompras() {
-  document.getElementById('compras-busca').addEventListener('input', renderCompras);
-  document.getElementById('compras-filtro-status').addEventListener('change', renderCompras);
-  ViewRenderers.compras = renderCompras;
-  ViewActions.compras = el => {
-    el.innerHTML = `<button class="btn btn-primary" id="btn-nova-compra">${icon('plus')} Nova compra</button>`;
-    document.getElementById('btn-nova-compra').addEventListener('click', abrirModalNovaCompra);
-  };
-}
-
-function produtoOptionsCompra(db) {
-  return db.estoque.map(p => `<option value="${p.id}">${escapeHTML(p.nome)} — estoque ${p.qtd}</option>`).join('') + '<option value="__novo__">+ Cadastrar novo produto</option>';
-}
-
-function formCompraHTML(db) {
-  return `
-    <h3>Nova compra</h3>
-    <div class="form-grid">
-      <label class="field wide"><span>Fornecedor</span><input type="text" id="f-compra-fornecedor" placeholder="Nome do fornecedor"></label>
-      <label class="field"><span>Data da compra</span><input type="date" id="f-compra-data" value="${todayISO()}"></label>
-      <label class="field"><span>Status</span><select id="f-compra-status"><option value="pago">Pago</option><option value="pendente">Pendente</option></select></label>
-      <label class="field" id="f-compra-venc-wrap" hidden><span>Vencimento</span><input type="date" id="f-compra-vencimento"></label>
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="brand-mark" id="auth-brand-mark">M&amp;M</div>
+      <strong id="auth-brand-name">M&amp;M Cosméticos</strong>
+      <span>Gestão da loja</span>
     </div>
-    <div class="add-item-row add-item-row-4">
-      <label class="field"><span>Produto</span><select id="f-compra-produto">${produtoOptionsCompra(db)}</select></label>
-      <label class="field"><span>Qtd</span><input type="number" id="f-compra-qtd" min="1" step="1" value="1"></label>
-      <label class="field"><span>Custo unit. (R$)</span><input type="number" id="f-compra-custo" min="0" step="0.01" placeholder="0,00"></label>
-      <button class="btn btn-outline" id="btn-add-item-compra">${icon('plus')} Adicionar</button>
+    <div id="auth-body"></div>
+  </div>
+</div>
+
+<div id="app" class="app" hidden>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark" id="brand-mark">M&amp;M</div>
+      <div class="brand-text">
+        <strong>M&amp;M Cosméticos</strong>
+        <span>Gestão da loja</span>
+      </div>
     </div>
-    <div class="form-row" id="compra-novo-nome-wrap" hidden>
-      <input type="text" id="f-compra-novo-nome" placeholder="Nome do novo produto">
-      <select id="f-compra-novo-categoria">${db.config.categorias.map(c => `<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('')}</select>
+
+    <nav class="nav" id="main-nav">
+      <button class="nav-item active" data-view="painel">
+        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><rect x="2" y="2" width="7" height="7" rx="1.4"/><rect x="11" y="2" width="7" height="7" rx="1.4"/><rect x="2" y="11" width="7" height="7" rx="1.4"/><rect x="11" y="11" width="7" height="7" rx="1.4"/></svg>
+        Painel
+      </button>
+      <button class="nav-item" data-view="estoque">
+        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><path d="M2.5 6.5 10 2.5l7.5 4v7L10 17.5l-7.5-4z"/><path d="M2.5 6.5 10 10.5l7.5-4"/><path d="M10 10.5v7"/></svg>
+        Estoque
+      </button>
+      <button class="nav-item" data-view="vendas">
+        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><path d="M11 2.5h4.5a2 2 0 0 1 2 2V9a2 2 0 0 1-.6 1.4l-7.6 7.6a2 2 0 0 1-2.8 0l-4.5-4.5a2 2 0 0 1 0-2.8l7.6-7.6A2 2 0 0 1 11 2.5Z"/><circle cx="13.4" cy="6.6" r="1.15" fill="currentColor" stroke="none"/></svg>
+        Vendas
+      </button>
+      <button class="nav-item" data-view="clientes">
+        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><circle cx="10" cy="7.2" r="3.2"/><path d="M3.5 17c.8-3.4 3.4-5.2 6.5-5.2s5.7 1.8 6.5 5.2"/></svg>
+        Clientes
+      </button>
+      <button class="nav-item" data-view="compras">
+        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><path d="M10 2.5v8.5"/><path d="M6.2 7.7 10 11.5l3.8-3.8"/><path d="M3 13.2v2.3A2.5 2.5 0 0 0 5.5 18h9a2.5 2.5 0 0 0 2.5-2.5v-2.3"/></svg>
+        Compras
+      </button>
+      <button class="nav-item" data-view="pendencias">
+        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><circle cx="10" cy="10" r="7.5"/><path d="M10 5.8V10l3 2"/></svg>
+        Pendências
+        <span class="nav-badge" id="nav-badge-pend" hidden>0</span>
+      </button>
+      <button class="nav-item" data-view="financeiro">
+        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><path d="M2.5 15.5 7.2 10l3 2.5 6-7"/><path d="M13 5.5h3.2v3.2"/></svg>
+        Financeiro
+      </button>
+      <button class="nav-item" data-view="relatorios">
+        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><path d="M4 3h12v14H4z"/><path d="M7 7h6M7 10h6M7 13h4"/></svg>
+        Relatórios
+      </button>
+      <button class="nav-item" data-view="registros">
+        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><path d="M5.5 2.5h6l3 3V17.5h-9z"/><path d="M11.5 2.5v3h3"/><path d="M7.5 10.2h5M7.5 13.2h5"/></svg>
+        Registros
+      </button>
+      <button class="nav-item" data-view="config">
+        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><circle cx="10" cy="10" r="2.5"/><path d="M10 2.8v2M10 15.2v2M17.2 10h-2M4.8 10h-2M15.1 4.9l-1.4 1.4M6.3 13.7l-1.4 1.4M15.1 15.1l-1.4-1.4M6.3 6.3 4.9 4.9"/></svg>
+        Configurações
+      </button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar-user-avatar">–</div>
+        <div class="sidebar-user-meta"><strong id="sidebar-user-name">—</strong><span id="sidebar-user-role">conectado</span></div>
+        <button class="sidebar-logout" id="btn-logout">Sair</button>
+      </div>
     </div>
-    <table class="cart-table">
-      <thead><tr><th>Produto</th><th>Qtd</th><th>Custo unit.</th><th>Subtotal</th><th></th></tr></thead>
-      <tbody id="compra-carrinho-body"></tbody>
-      <tfoot><tr><td colspan="3">Total</td><td colspan="2" id="compra-carrinho-total">R$ 0,00</td></tr></tfoot>
-    </table>
-    <div class="btn-row">
-      <button class="btn btn-primary" id="btn-finalizar-compra">Registrar compra</button>
-      <button class="btn btn-ghost" id="btn-cancelar-compra">Cancelar</button>
-    </div>`;
-}
+  </aside>
 
-function abrirModalNovaCompra() {
-  const db = getDB();
-  carrinhoCompra = [];
-  openModal(formCompraHTML(db));
-  renderCarrinhoCompra();
-  document.getElementById('btn-add-item-compra').addEventListener('click', adicionarItemCompra);
-  document.getElementById('btn-finalizar-compra').addEventListener('click', finalizarCompra);
-  document.getElementById('btn-cancelar-compra').addEventListener('click', closeModal);
-  document.getElementById('f-compra-status').addEventListener('change', e => {
-    document.getElementById('f-compra-venc-wrap').hidden = e.target.value !== 'pendente';
-  });
-  document.getElementById('f-compra-produto').addEventListener('change', e => {
-    const novo = e.target.value === '__novo__';
-    document.getElementById('compra-novo-nome-wrap').hidden = !novo;
-    if (!novo) {
-      const produto = getDB().estoque.find(p => p.id === e.target.value);
-      document.getElementById('f-compra-custo').value = produto ? produto.custo || '' : '';
-    } else {
-      document.getElementById('f-compra-custo').value = '';
-    }
-  });
-}
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-toggle" id="mobile-toggle" aria-label="Menu">
+          <svg viewBox="0 0 20 20" class="icon-sm"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <div>
+          <h1 id="page-title">Painel</h1>
+          <p id="page-subtitle">Resumo geral da loja</p>
+        </div>
+      </div>
+      <div class="topbar-actions">
+            <button class="notification-btn" id="btn-notificacoes" title="Notificações">
+              <svg class="notification-icon" viewBox="0 0 20 20"><path d="M5.2 8.5a4.8 4.8 0 0 1 9.6 0v3l1.3 1.8H3.9l1.3-1.8z"/><path d="M8 15.2a2.2 2.2 0 0 0 4 0"/></svg><span class="notification-count" id="notification-count" hidden>0</span>
+            </button>
+            <div id="topbar-actions"></div>
+          </div>
+    </header>
 
-function adicionarItemCompra() {
-  const db = getDB();
-  const produtoId = document.getElementById('f-compra-produto').value;
-  const qtd = parseNumber(document.getElementById('f-compra-qtd').value);
-  const custo = parseNumber(document.getElementById('f-compra-custo').value);
-  if (qtd <= 0) { toast('Quantidade inválida', 'error'); return; }
-  if (custo <= 0) { toast('Informe o custo unitário', 'error'); return; }
-  if (produtoId === '__novo__') {
-    const nomeNovo = document.getElementById('f-compra-novo-nome').value.trim();
-    if (!nomeNovo) { toast('Informe o nome do novo produto', 'error'); return; }
-    carrinhoCompra.push({ id: uid(), nome: nomeNovo, qtd, custo, novo: true, categoria: document.getElementById('f-compra-novo-categoria').value });
-    document.getElementById('f-compra-novo-nome').value = '';
-  } else {
-    const produto = db.estoque.find(p => p.id === produtoId);
-    if (!produto) { toast('Selecione um produto', 'error'); return; }
-    const existente = carrinhoCompra.find(i => i.id === produto.id);
-    if (existente) { existente.qtd += qtd; existente.custo = custo; }
-    else carrinhoCompra.push({ id: produto.id, nome: produto.nome, qtd, custo });
-  }
-  document.getElementById('compra-novo-nome-wrap').hidden = true;
-  renderCarrinhoCompra();
-}
+    <div class="view-wrap">
 
-function removerItemCompra(i) {
-  carrinhoCompra.splice(i, 1);
-  renderCarrinhoCompra();
-}
+      <section class="view active" id="view-painel">
+        <div class="kpi-row">
+          <div class="kpi">
+            <span class="kpi-label">Receita do mês</span>
+            <strong class="kpi-value" id="kpi-receita-mes">R$ 0,00</strong>
+            <span class="kpi-note">vendas pagas</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">Lucro bruto do mês</span>
+            <strong class="kpi-value" id="kpi-lucro-mes">R$ 0,00</strong>
+            <span class="kpi-note">receita − custo da mercadoria</span>
+          </div>
+          <div class="kpi warn">
+            <span class="kpi-label">Pendências em aberto</span>
+            <strong class="kpi-value" id="kpi-pend-total">R$ 0,00</strong>
+            <span class="kpi-note" id="kpi-pend-note">0 notas</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">Estoque baixo</span>
+            <strong class="kpi-value" id="kpi-estoque-baixo">0</strong>
+            <span class="kpi-note">produtos no limite</span>
+          </div>
+        </div>
 
-function renderCarrinhoCompra() {
-  const body = document.getElementById('compra-carrinho-body');
-  body.innerHTML = carrinhoCompra.length
-    ? carrinhoCompra.map((it, i) => `<tr><td>${escapeHTML(it.nome)}${it.novo ? ' <span class="badge badge-pendente">novo</span>' : ''}</td><td>${it.qtd}</td><td class="num">${formatBRL(it.custo)}</td><td class="num">${formatBRL(it.custo * it.qtd)}</td><td><button class="icon-btn danger" data-rm="${i}">${icon('trash')}</button></td></tr>`).join('')
-    : `<tr class="cart-empty-row"><td colspan="5">Nenhum item adicionado</td></tr>`;
-  document.getElementById('compra-carrinho-total').textContent = formatBRL(carrinhoCompra.reduce((s, i) => s + i.custo * i.qtd, 0));
-  body.querySelectorAll('[data-rm]').forEach(btn => btn.addEventListener('click', () => removerItemCompra(Number(btn.dataset.rm))));
-}
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-head"><h2>Vendas · últimos 14 dias</h2></div>
+            <div id="painel-chart" class="chart-mount"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>Estoque baixo</h2><button class="link-btn" data-view-link="estoque">ver estoque</button></div>
+            <div id="painel-estoque-baixo" class="stack-list"></div>
+          </div>
+        </div>
 
-function finalizarCompra() {
-  if (!carrinhoCompra.length) { toast('Adicione ao menos um item', 'error'); return; }
-  const status = document.getElementById('f-compra-status').value;
-  const vencimento = document.getElementById('f-compra-vencimento').value;
-  if (status === 'pendente' && !vencimento) { toast('Informe a data de vencimento', 'error'); return; }
-  const db = getDB();
-  carrinhoCompra.forEach(it => {
-    if (it.novo) {
-      db.estoque.push({ id: it.id, nome: it.nome, marca: '', categoria: it.categoria, codigo: '', qtd: it.qtd, minimo: db.config.estoqueMinimo, custo: it.custo, venda: 0, imagem: '', criadoEm: new Date().toISOString() });
-    } else {
-      const produto = db.estoque.find(p => p.id === it.id);
-      if (produto) { produto.qtd += it.qtd; produto.custo = it.custo; }
-    }
-  });
-  const total = carrinhoCompra.reduce((s, i) => s + i.custo * i.qtd, 0);
-  const compra = {
-    id: uid(),
-    type: 'compra',
-    numero: nextNumero(db, 'compra'),
-    data: document.getElementById('f-compra-data').value || todayISO(),
-    criadoEm: new Date().toISOString(),
-    fornecedor: document.getElementById('f-compra-fornecedor').value.trim() || 'Fornecedor não identificado',
-    status,
-    vencimento: status === 'pendente' ? vencimento : '',
-    pagoEm: status === 'pago' ? todayISO() : '',
-    total,
-    itens: carrinhoCompra.map(it => ({ id: it.id, nome: it.nome, qtd: it.qtd, valor: it.custo, custo: it.custo }))
-  };
-  db.compras.push(compra);
-  registrarLog(db, 'Compra registrada', { Nota: compra.numero, Fornecedor: compra.fornecedor, Itens: compra.itens.length, Total: formatBRL(compra.total), Status: compra.status });
-  saveDB(db);
-  closeModal();
-  refreshCurrentView();
-  renderCompras();
-  toast('Compra registrada e estoque atualizado');
-  renderNota(compra, db);
-}
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-head"><h2>Vendas recentes</h2><button class="link-btn" data-view-link="vendas">ver todas</button></div>
+            <div class="table-scroll">
+              <table class="table">
+                <thead><tr><th>Nota</th><th>Data</th><th>Cliente</th><th>Total</th><th>Status</th></tr></thead>
+                <tbody id="painel-vendas-recentes"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>Mais vendidos</h2></div>
+            <div id="painel-mais-vendidos" class="stack-list"></div>
+          </div>
+        </div>
+      </section>
 
-function marcarCompraPaga(id) {
-  const db = getDB();
-  const compra = db.compras.find(c => c.id === id);
-  if (!compra) return;
-  compra.status = 'pago';
-  compra.pagoEm = todayISO();
-  registrarLog(db, 'Compra marcada como paga', { Nota: compra.numero, Fornecedor: compra.fornecedor, Total: formatBRL(compra.total) });
-  saveDB(db);
-  refreshCurrentView();
-  renderCompras();
-  toast('Compra marcada como paga');
-}
+      <section class="view" id="view-estoque">
+        <div class="kpi-row kpi-row-3">
+          <div class="kpi"><span class="kpi-label">Produtos cadastrados</span><strong class="kpi-value" id="est-kpi-total">0</strong></div>
+          <div class="kpi"><span class="kpi-label">Valor em estoque (custo)</span><strong class="kpi-value" id="est-kpi-valor">R$ 0,00</strong></div>
+          <div class="kpi warn"><span class="kpi-label">Itens em alerta</span><strong class="kpi-value" id="est-kpi-alerta">0</strong></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Inventário</h2>
+            <div class="filters">
+              <div class="search-field"><svg viewBox="0 0 20 20" class="icon-sm"><circle cx="8.5" cy="8.5" r="5.3"/><path d="m16 16-3.3-3.3"/></svg><input type="text" id="estoque-busca" placeholder="Buscar produto, código ou marca"></div>
+              <select id="estoque-filtro-categoria"><option value="">Todas as categorias</option></select>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="table">
+              <thead><tr><th></th><th>Produto</th><th>Categoria</th><th>Código</th><th>Cliente</th><th>Estoque</th><th>Custo</th><th>Venda</th><th>Margem</th><th></th></tr></thead>
+              <tbody id="estoque-tbody"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="estoque-empty" hidden>Nenhum produto cadastrado ainda.</p>
+        </div>
+      </section>
 
-function excluirCompra(id) {
-  if (!confirm('Excluir esta compra? A quantidade recebida será removida do estoque.')) return;
-  const db = getDB();
-  const compra = db.compras.find(c => c.id === id);
-  if (!compra) return;
-  compra.itens.forEach(it => {
-    const produto = db.estoque.find(p => p.id === it.id);
-    if (produto) produto.qtd = Math.max(0, produto.qtd - it.qtd);
-  });
-  db.compras = db.compras.filter(c => c.id !== id);
-  registrarLog(db, 'Compra excluída', { Nota: compra.numero, Fornecedor: compra.fornecedor });
-  saveDB(db);
-  refreshCurrentView();
-  renderCompras();
-  toast('Compra excluída e estoque ajustado');
-}
+      <section class="view" id="view-vendas">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Vendas registradas</h2>
+            <div class="filters">
+              <div class="search-field"><svg viewBox="0 0 20 20" class="icon-sm"><circle cx="8.5" cy="8.5" r="5.3"/><path d="m16 16-3.3-3.3"/></svg><input type="text" id="vendas-busca" placeholder="Buscar cliente"></div>
+              <select id="vendas-filtro-status"><option value="">Todos os status</option><option value="pago">Pago</option><option value="pendente">Pendente</option></select>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="table">
+              <thead><tr><th>Nota</th><th>Data</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Pagamento</th><th>Status</th><th></th></tr></thead>
+              <tbody id="vendas-tbody"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="vendas-empty" hidden>Nenhuma venda lançada ainda.</p>
+        </div>
+      </section>
 
-function filtrarCompras(db) {
-  const busca = (document.getElementById('compras-busca').value || '').toLowerCase();
-  const status = document.getElementById('compras-filtro-status').value;
-  return db.compras.filter(c => (!busca || (c.fornecedor || '').toLowerCase().includes(busca)) && (!status || c.status === status));
-}
+      <section class="view" id="view-clientes">
+        <div class="kpi-row kpi-row-3">
+          <div class="kpi"><span class="kpi-label">Clientes cadastrados</span><strong class="kpi-value" id="cli-kpi-total">0</strong></div>
+          <div class="kpi"><span class="kpi-label">Total já comprado</span><strong class="kpi-value" id="cli-kpi-total-gasto">R$ 0,00</strong></div>
+          <div class="kpi"><span class="kpi-label">Ticket médio</span><strong class="kpi-value" id="cli-kpi-ticket">R$ 0,00</strong></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Base de clientes</h2>
+            <div class="search-field"><svg viewBox="0 0 20 20" class="icon-sm"><circle cx="8.5" cy="8.5" r="5.3"/><path d="m16 16-3.3-3.3"/></svg><input type="text" id="clientes-busca" placeholder="Buscar nome, WhatsApp ou CPF"></div>
+          </div>
+          <div class="table-scroll">
+            <table class="table">
+              <thead><tr><th>Cliente</th><th>WhatsApp</th><th>CPF</th><th>Compras</th><th>Total gasto</th><th>Última compra</th><th></th></tr></thead>
+              <tbody id="clientes-tbody"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="clientes-empty" hidden>Nenhum cliente cadastrado ainda.</p>
+        </div>
+      </section>
 
-function renderCompras() {
-  const db = getDB();
-  const lista = filtrarCompras(db).slice().sort((a, b) => (b.criadoEm || '').localeCompare(a.criadoEm || ''));
-  const tbody = document.getElementById('compras-tbody');
-  const empty = document.getElementById('compras-empty');
-  const scrollWrap = tbody.closest('.table-scroll');
-  if (!lista.length) {
-    scrollWrap.style.display = 'none';
-    empty.hidden = false;
-    empty.textContent = db.compras.length ? 'Nenhuma compra encontrada com esse filtro.' : 'Nenhuma compra registrada ainda. Lance uma compra para dar entrada no estoque.';
-  } else {
-    scrollWrap.style.display = '';
-    empty.hidden = true;
-  }
-  tbody.innerHTML = lista.map(c => `
-    <tr>
-      <td class="mono">${escapeHTML(c.numero)}</td>
-      <td>${formatDateBR(c.data)}</td>
-      <td>${escapeHTML(c.fornecedor || '-')}</td>
-      <td>${c.itens.length} item${c.itens.length !== 1 ? 's' : ''}</td>
-      <td class="num">${formatBRL(c.total)}</td>
-      <td><span class="badge badge-${c.status}">${c.status === 'pago' ? 'Pago' : 'Pendente'}</span></td>
-      <td class="row-actions">
-        ${c.status === 'pendente' ? `<button class="icon-btn" data-pay="${c.id}" title="Marcar como pago">${icon('check')}</button>` : ''}
-        <button class="icon-btn" data-view="${c.id}" title="Ver nota">${icon('eye')}</button>
-        <button class="icon-btn danger" data-del="${c.id}" title="Excluir">${icon('trash')}</button>
-      </td>
-    </tr>`).join('');
-  tbody.querySelectorAll('[data-pay]').forEach(btn => btn.addEventListener('click', () => marcarCompraPaga(btn.dataset.pay)));
-  tbody.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', () => renderNota(db.compras.find(c => c.id === btn.dataset.view), db)));
-  tbody.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => excluirCompra(btn.dataset.del)));
-}
+      <section class="view" id="view-compras">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Compras registradas</h2>
+            <div class="filters">
+              <div class="search-field"><svg viewBox="0 0 20 20" class="icon-sm"><circle cx="8.5" cy="8.5" r="5.3"/><path d="m16 16-3.3-3.3"/></svg><input type="text" id="compras-busca" placeholder="Buscar fornecedor"></div>
+              <select id="compras-filtro-status"><option value="">Todos os status</option><option value="pago">Pago</option><option value="pendente">Pendente</option></select>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="table">
+              <thead><tr><th>Nota</th><th>Data</th><th>Fornecedor</th><th>Itens</th><th>Total</th><th>Status</th><th></th></tr></thead>
+              <tbody id="compras-tbody"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="compras-empty" hidden>Nenhuma compra registrada ainda.</p>
+        </div>
+      </section>
+
+      <section class="view" id="view-pendencias">
+        <div class="kpi-row kpi-row-3">
+          <div class="kpi"><span class="kpi-label">A receber</span><strong class="kpi-value" id="pend-kpi-receber">R$ 0,00</strong></div>
+          <div class="kpi"><span class="kpi-label">A pagar</span><strong class="kpi-value" id="pend-kpi-pagar">R$ 0,00</strong></div>
+          <div class="kpi" id="pend-kpi-saldo-card"><span class="kpi-label">Saldo entre pendências</span><strong class="kpi-value" id="pend-kpi-saldo">R$ 0,00</strong></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Notas pendentes</h2></div>
+          <div class="table-scroll">
+            <table class="table">
+              <thead><tr><th>Tipo</th><th>Nota</th><th>Vencimento</th><th>Cliente/Fornecedor</th><th>Valor</th><th></th></tr></thead>
+              <tbody id="pendencias-tbody"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="pendencias-empty" hidden>Nenhuma pendência no momento.</p>
+        </div>
+      </section>
+
+      <section class="view" id="view-financeiro">
+        <div class="panel">
+          <div class="panel-head"><h2>Financeiro</h2>
+            <select id="fin-periodo"><option value="mes">Este mês</option><option value="mes-passado">Mês passado</option><option value="30d">Últimos 30 dias</option><option value="ano">Este ano</option><option value="tudo">Todo o período</option></select>
+          </div>
+        </div>
+        <div class="kpi-row">
+          <div class="kpi"><span class="kpi-label">Receita recebida</span><strong class="kpi-value" id="fin-kpi-receita">R$ 0,00</strong></div>
+          <div class="kpi"><span class="kpi-label">Custo da mercadoria vendida</span><strong class="kpi-value" id="fin-kpi-cmv">R$ 0,00</strong></div>
+          <div class="kpi"><span class="kpi-label">Lucro bruto</span><strong class="kpi-value" id="fin-kpi-lucro">R$ 0,00</strong></div>
+          <div class="kpi"><span class="kpi-label">Compras pagas no período</span><strong class="kpi-value" id="fin-kpi-compras">R$ 0,00</strong></div>
+        </div>
+        <div class="grid-2">
+          <div class="panel"><div class="panel-head"><h2>Receita x custo de compras</h2></div><div id="fin-chart" class="chart-mount"></div></div>
+          <div class="panel"><div class="panel-head"><h2>Resumo</h2></div><div id="fin-resumo" class="summary-list"></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Movimentações do período</h2></div>
+          <div class="table-scroll">
+            <table class="table">
+              <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Status</th><th>Valor</th></tr></thead>
+              <tbody id="fin-tbody"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="fin-empty" hidden>Sem movimentações no período selecionado.</p>
+        </div>
+      </section>
+
+      <section class="view" id="view-relatorios">
+        <div class="kpi-row">
+          <div class="kpi"><span class="kpi-label">Vendas no período</span><strong class="kpi-value" id="rel-kpi-vendas">0</strong></div>
+          <div class="kpi"><span class="kpi-label">Receita</span><strong class="kpi-value" id="rel-kpi-receita">R$ 0,00</strong></div>
+          <div class="kpi"><span class="kpi-label">Lucro bruto</span><strong class="kpi-value" id="rel-kpi-lucro">R$ 0,00</strong></div>
+          <div class="kpi"><span class="kpi-label">Itens vendidos</span><strong class="kpi-value" id="rel-kpi-itens">0</strong></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div><h2>Relatório de vendas</h2><p class="panel-desc">Filtre por período e exporte os resultados.</p></div>
+            <div class="report-actions">
+              <button class="btn btn-outline" id="btn-relatorio-csv">Exportar CSV</button>
+              <button class="btn btn-primary" id="btn-relatorio-imprimir">Imprimir / PDF</button>
+            </div>
+          </div>
+          <div class="report-filters">
+            <label class="field"><span>Data inicial</span><input type="date" id="rel-data-inicio"></label>
+            <label class="field"><span>Data final</span><input type="date" id="rel-data-fim"></label>
+            <label class="field"><span>Status</span><select id="rel-status"><option value="">Todos</option><option value="pago">Pago</option><option value="pendente">Pendente</option></select></label>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="panel"><div class="panel-head"><h2>Receita por dia</h2></div><div id="rel-chart" class="chart-mount"></div></div>
+          <div class="panel"><div class="panel-head"><h2>Resumo do período</h2></div><div id="rel-resumo" class="summary-list"></div></div>
+        </div>
+        <div class="panel" id="relatorio-print-area">
+          <div class="panel-head"><h2>Detalhamento</h2></div>
+          <div class="table-scroll"><table class="table">
+            <thead><tr><th>Data</th><th>Nota</th><th>Cliente</th><th>Status</th><th>Itens</th><th>Total</th></tr></thead>
+            <tbody id="rel-tbody"></tbody>
+          </table></div>
+          <p class="empty-hint" id="rel-empty" hidden>Nenhuma venda encontrada no período.</p>
+        </div>
+      </section>
+
+      <section class="view" id="view-registros">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Registros de atividade</h2>
+            <div class="search-field"><svg viewBox="0 0 20 20" class="icon-sm"><circle cx="8.5" cy="8.5" r="5.3"/><path d="m16 16-3.3-3.3"/></svg><input type="text" id="registros-busca" placeholder="Buscar usuário ou ação"></div>
+          </div>
+          <div class="table-scroll">
+            <table class="table">
+              <thead><tr><th>Data e hora</th><th>Usuário</th><th>Ação</th><th></th></tr></thead>
+              <tbody id="registros-tbody"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="registros-empty" hidden>Nenhum registro ainda.</p>
+        </div>
+      </section>
+
+      <section class="view" id="view-config">
+        <div class="panel">
+          <div class="panel-head"><h2>Dados da loja</h2></div>
+          <p class="panel-desc">Essas informações aparecem no cabeçalho das notas emitidas.</p>
+          <div class="form-grid">
+            <label class="field"><span>Nome da loja</span><input type="text" id="cfg-nome-loja"></label>
+            <label class="field"><span>Telefone / WhatsApp</span><input type="text" id="cfg-telefone"></label>
+            <label class="field wide"><span>Endereço</span><input type="text" id="cfg-endereco"></label>
+            <label class="field"><span>Alerta padrão de estoque mínimo</span><input type="number" id="cfg-estoque-minimo" min="0" step="1"></label>
+            <label class="field file-field"><span>Logo da loja (opcional)</span><input type="file" id="cfg-logo-input" accept="image/*"></label>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="btn-salvar-config">Salvar configurações</button>
+            <button class="btn btn-ghost" id="btn-remover-logo">Remover logo</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Categorias de produto</h2></div>
+          <div class="form-row"><input type="text" id="cfg-nova-categoria" placeholder="Nova categoria, ex: Skincare"><button class="btn btn-outline" id="btn-add-categoria">Adicionar</button></div>
+          <div class="chip-row" id="cfg-categorias-chips"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Usuários do sistema</h2><button class="btn btn-outline btn-sm" id="btn-novo-usuario">+ Novo usuário</button></div>
+          <p class="panel-desc">Cada pessoa da equipe deve ter seu próprio usuário — é o que identifica quem fez cada registro.</p>
+          <div id="usuarios-lista"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Backup dos dados</h2></div>
+          <p class="panel-desc">Os dados ficam salvos no navegador deste computador. Exporte um backup periodicamente para não correr risco de perder o histórico.</p>
+          <div class="btn-row">
+            <button class="btn btn-outline" id="btn-exportar-dados">Exportar backup (.json)</button>
+            <label class="btn btn-outline file-btn">Importar backup<input type="file" id="cfg-importar-input" accept="application/json" hidden></label>
+          </div>
+        </div>
+
+        <div class="panel panel-danger">
+          <div class="panel-head"><h2>Zona de risco</h2></div>
+          <p class="panel-desc">Apaga produtos, vendas, compras e clientes salvos neste navegador. Essa ação não pode ser desfeita.</p>
+          <button class="btn btn-danger" id="btn-reset-sistema">Apagar todos os dados</button>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box" id="modal-box">
+    <button class="modal-close" id="modal-close"><svg viewBox="0 0 20 20" class="icon-sm"><path d="M5 5l10 10M15 5 5 15"/></svg></button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="note-overlay">
+  <div class="modal-box note-modal-box">
+    <button class="modal-close" id="note-close"><svg viewBox="0 0 20 20" class="icon-sm"><path d="M5 5l10 10M15 5 5 15"/></svg></button>
+    <div id="note-body"></div>
+    <div class="note-actions">
+      <button class="btn btn-outline" id="btn-fechar-nota">Fechar</button>
+      <button class="btn btn-outline" id="btn-whatsapp-nota"><svg viewBox="0 0 20 20" class="icon-sm"><path d="M4 16.5 5 13a6.8 6.8 0 1 1 2.6 2.6z"/></svg>WhatsApp</button>
+      <button class="btn btn-primary" id="btn-imprimir-nota"><svg viewBox="0 0 20 20" class="icon-sm"><path d="M6 7.5V3h8v4.5M5 13.5H4A1.5 1.5 0 0 1 2.5 12V9A1.5 1.5 0 0 1 4 7.5h12A1.5 1.5 0 0 1 17.5 9v3a1.5 1.5 0 0 1-1.5 1.5h-1M6 11h8v6H6z"/></svg>Imprimir / salvar PDF</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="detail-overlay">
+  <div class="modal-box">
+    <button class="modal-close" id="detail-close"><svg viewBox="0 0 20 20" class="icon-sm"><path d="M5 5l10 10M15 5 5 15"/></svg></button>
+    <div id="detail-body"></div>
+  </div>
+</div>
+
+<div id="print-area"></div>
+<div class="toast-stack" id="toast-stack"></div>
+
+<script src="app.js"></script>
+<script src="auth.js"></script>
+<script src="estoque.js"></script>
+<script src="clientes.js"></script>
+<script src="vendas.js"></script>
+<script src="compras.js"></script>
+<script src="financeiro.js"></script>
+<script src="registros.js"></script>
+<script src="relatorios.js"></script>
+</body>
+</html>
