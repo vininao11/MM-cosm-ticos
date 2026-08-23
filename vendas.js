@@ -18,7 +18,8 @@ function formVendaHTML(db) {
     <h3>Nova venda</h3>
     <div class="form-grid">
       <label class="field wide"><span>Cliente cadastrado</span><select id="f-venda-cliente"><option value="">Cliente avulso / sem cadastro</option>${clienteOptions}</select></label>
-      <label class="field wide" id="f-venda-avulso-wrap"><span>Nome do cliente avulso (opcional)</span><input type="text" id="f-venda-avulso-nome" placeholder="Digite o nome para aparecer na venda"></label>
+      <label class="field"><span>Nome do cliente avulso (opcional)</span><input type="text" id="f-venda-avulso-nome" placeholder="Digite o nome para aparecer na venda"></label>
+      <label class="field"><span>WhatsApp para envio da nota</span><input type="tel" id="f-venda-whatsapp" placeholder="(11) 99999-9999"></label>
       <label class="field"><span>Data da venda</span><input type="date" id="f-venda-data" value="${todayISO()}"></label>
       <label class="field"><span>Forma de pagamento</span><select id="f-venda-forma"><option>Pix</option><option>Dinheiro</option><option>Cartão de crédito</option><option>Cartão de débito</option><option>Boleto</option></select></label>
       <label class="field"><span>Status</span><select id="f-venda-status"><option value="pago">Pago</option><option value="pendente">Pendente</option></select></label>
@@ -57,7 +58,9 @@ function abrirModalNovaVenda() {
     document.getElementById('f-venda-venc-wrap').hidden = e.target.value !== 'pendente';
   });
   document.getElementById('f-venda-cliente').addEventListener('change', e => {
-    document.getElementById('f-venda-avulso-wrap').hidden = !!e.target.value;
+    document.getElementById('f-venda-avulso-nome').parentElement.classList.toggle('field-muted', !!e.target.value);
+    const cliente = getDB().clientes.find(c => c.id === e.target.value);
+    document.getElementById('f-venda-whatsapp').value = cliente ? (cliente.whatsapp || '') : '';
   });
 }
 
@@ -173,6 +176,7 @@ function finalizarVenda() {
   const clienteId = document.getElementById('f-venda-cliente').value;
   const cliente = db.clientes.find(c => c.id === clienteId);
   const nomeAvulso = document.getElementById('f-venda-avulso-nome').value.trim();
+  const clienteWhatsapp = document.getElementById('f-venda-whatsapp').value.trim();
   carrinhoVenda.forEach(it => {
     const produto = db.estoque.find(p => p.id === it.id);
     if (produto) produto.qtd -= it.qtd;
@@ -185,6 +189,7 @@ function finalizarVenda() {
     criadoEm: new Date().toISOString(),
     cliente: cliente ? cliente.nome : (nomeAvulso || 'Cliente avulso'),
     clienteId: clienteId || '',
+    clienteWhatsapp,
     pagamento: document.getElementById('f-venda-forma').value,
     status,
     vencimento: status === 'pendente' ? vencimento : '',
