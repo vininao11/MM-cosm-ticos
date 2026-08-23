@@ -5,8 +5,9 @@ function initVendas() {
   document.getElementById('vendas-filtro-status').addEventListener('change', renderVendas);
   ViewRenderers.vendas = renderVendas;
   ViewActions.vendas = el => {
-    el.innerHTML = `<button class="btn btn-primary" id="btn-nova-venda">${icon('plus')} Nova venda</button>`;
+    el.innerHTML = `<button class="btn btn-outline" id="btn-gerenciar-cupons">Cupons</button><button class="btn btn-primary" id="btn-nova-venda">${icon('plus')} Nova venda</button>`;
     document.getElementById('btn-nova-venda').addEventListener('click', abrirModalNovaVenda);
+    document.getElementById('btn-gerenciar-cupons').addEventListener('click', abrirGerenciadorCupons);
   };
 }
 
@@ -16,12 +17,14 @@ function formVendaHTML(db) {
   return `
     <h3>Nova venda</h3>
     <div class="form-grid">
-      <label class="field wide"><span>Cliente</span><select id="f-venda-cliente"><option value="">Cliente avulso</option>${clienteOptions}</select></label>
+      <label class="field wide"><span>Cliente cadastrado</span><select id="f-venda-cliente"><option value="">Cliente avulso / sem cadastro</option>${clienteOptions}</select></label>
+      <label class="field wide" id="f-venda-avulso-wrap"><span>Nome do cliente avulso (opcional)</span><input type="text" id="f-venda-avulso-nome" placeholder="Digite o nome para aparecer na venda"></label>
       <label class="field"><span>Data da venda</span><input type="date" id="f-venda-data" value="${todayISO()}"></label>
       <label class="field"><span>Forma de pagamento</span><select id="f-venda-forma"><option>Pix</option><option>Dinheiro</option><option>Cartão de crédito</option><option>Cartão de débito</option><option>Boleto</option></select></label>
       <label class="field"><span>Status</span><select id="f-venda-status"><option value="pago">Pago</option><option value="pendente">Pendente</option></select></label>
       <label class="field" id="f-venda-venc-wrap" hidden><span>Vencimento</span><input type="date" id="f-venda-vencimento"></label>
-      <label class="field"><span>Desconto (R$)</span><input type="number" id="f-venda-desconto" min="0" step="0.01" value="0"></label>
+      <label class="field"><span>Desconto manual (R$)</span><input type="number" id="f-venda-desconto" min="0" step="0.01" value="0"></label>
+      <label class="field"><span>Cupom de desconto</span><div class="inline-field"><input type="text" id="f-venda-cupom" placeholder="Ex.: BEMVINDO10"><button class="btn btn-outline btn-sm" type="button" id="btn-aplicar-cupom">Aplicar</button></div><small id="f-venda-cupom-status" class="field-hint"></small></label>
     </div>
     <div class="add-item-row">
       <label class="field"><span>Produto</span><select id="f-venda-produto">${produtoOptions}</select></label>
@@ -42,14 +45,19 @@ function formVendaHTML(db) {
 function abrirModalNovaVenda() {
   const db = getDB();
   carrinhoVenda = [];
+  window.cupomVendaAplicado = null;
   openModal(formVendaHTML(db));
   renderCarrinhoVenda();
   document.getElementById('btn-add-item-venda').addEventListener('click', adicionarItemVenda);
   document.getElementById('btn-finalizar-venda').addEventListener('click', finalizarVenda);
   document.getElementById('btn-cancelar-venda').addEventListener('click', closeModal);
   document.getElementById('f-venda-desconto').addEventListener('input', renderCarrinhoVenda);
+  document.getElementById('btn-aplicar-cupom').addEventListener('click', aplicarCupomVenda);
   document.getElementById('f-venda-status').addEventListener('change', e => {
     document.getElementById('f-venda-venc-wrap').hidden = e.target.value !== 'pendente';
+  });
+  document.getElementById('f-venda-cliente').addEventListener('change', e => {
+    document.getElementById('f-venda-avulso-wrap').hidden = !!e.target.value;
   });
 }
 
@@ -79,9 +87,75 @@ function renderCarrinhoVenda() {
     ? carrinhoVenda.map((it, i) => `<tr><td>${escapeHTML(it.nome)}</td><td>${it.qtd}</td><td class="num">${formatBRL(it.valor)}</td><td class="num">${formatBRL(it.valor * it.qtd)}</td><td><button class="icon-btn danger" data-rm="${i}">${icon('trash')}</button></td></tr>`).join('')
     : `<tr class="cart-empty-row"><td colspan="5">Nenhum item adicionado</td></tr>`;
   const sub = carrinhoVenda.reduce((s, i) => s + i.valor * i.qtd, 0);
-  const desconto = parseNumber(document.getElementById('f-venda-desconto') ? document.getElementById('f-venda-desconto').value : 0);
+  const manual = parseNumber(document.getElementById('f-venda-desconto') ? document.getElementById('f-venda-desconto').value : 0);
+  const cupom = window.cupomVendaAplicado;
+  const descontoCupom = cupom ? calcularDescontoCupom(cupom, sub) : 0;
+  const desconto = Math.min(sub, manual + descontoCupom);
   document.getElementById('venda-carrinho-total').textContent = formatBRL(Math.max(0, sub - desconto));
+  const statusCupom = document.getElementById('f-venda-cupom-status');
+  if (statusCupom) statusCupom.textContent = cupom ? `Cupom aplicado: -${formatBRL(descontoCupom)}` : '';
   body.querySelectorAll('[data-rm]').forEach(btn => btn.addEventListener('click', () => removerItemVenda(Number(btn.dataset.rm))));
+}
+
+function calcularDescontoCupom(cupom, subtotal) {
+  if (!cupom) return 0;
+  return cupom.tipo === 'percentual' ? Math.min(subtotal, subtotal * (Number(cupom.valor) / 100)) : Math.min(subtotal, Number(cupom.valor));
+}
+
+function validarCupom(codigo) {
+  const db = getDB();
+  const c = db.cupons.find(x => (x.codigo || '').toUpperCase() === codigo.trim().toUpperCase() && x.ativo !== false);
+  if (!c) return { erro: 'Cupom não encontrado ou inativo.' };
+  if (c.validade && c.validade < todayISO()) return { erro: 'Esse cupom já expirou.' };
+  if (c.limiteUsos && Number(c.usos || 0) >= Number(c.limiteUsos)) return { erro: 'Esse cupom atingiu o limite de usos.' };
+  return { cupom: c };
+}
+
+function aplicarCupomVenda() {
+  const codigo = document.getElementById('f-venda-cupom').value.trim();
+  if (!codigo) { window.cupomVendaAplicado = null; renderCarrinhoVenda(); return; }
+  const result = validarCupom(codigo);
+  if (result.erro) { window.cupomVendaAplicado = null; toast(result.erro, 'error'); renderCarrinhoVenda(); return; }
+  window.cupomVendaAplicado = result.cupom;
+  toast(`Cupom ${result.cupom.codigo} aplicado`, 'success');
+  renderCarrinhoVenda();
+}
+
+function abrirGerenciadorCupons() {
+  const db = getDB();
+  openModal(`<h3>Cupons de desconto</h3>
+    <div class="coupon-create">
+      <div class="form-grid">
+        <label class="field"><span>Código</span><input id="cup-codigo" placeholder="BEMVINDO10"></label>
+        <label class="field"><span>Tipo</span><select id="cup-tipo"><option value="percentual">Porcentagem (%)</option><option value="fixo">Valor fixo (R$)</option></select></label>
+        <label class="field"><span>Valor</span><input type="number" id="cup-valor" min="0.01" step="0.01"></label>
+        <label class="field"><span>Validade</span><input type="date" id="cup-validade"></label>
+        <label class="field"><span>Limite de usos</span><input type="number" id="cup-limite" min="0" step="1" placeholder="0 = ilimitado"></label>
+      </div>
+      <button class="btn btn-primary" id="btn-criar-cupom">Criar cupom</button>
+    </div>
+    <div class="coupon-list">${db.cupons.length ? db.cupons.map(c => `<div class="notification-item"><div><strong>${escapeHTML(c.codigo)}</strong><span>${c.tipo === 'percentual' ? Number(c.valor) + '%' : formatBRL(c.valor)} · ${c.validade ? 'até '+formatDateBR(c.validade) : 'sem validade'}</span></div><div><span>${Number(c.usos||0)} uso(s)</span><button class="icon-btn danger" data-cup-del="${c.id}">${icon('trash')}</button></div></div>`).join('') : '<div class="stack-empty">Nenhum cupom criado.</div>'}</div>`);
+  document.getElementById('btn-criar-cupom').addEventListener('click', criarCupom);
+  document.querySelectorAll('[data-cup-del]').forEach(b => b.addEventListener('click', () => excluirCupom(b.dataset.cupDel)));
+}
+
+function criarCupom() {
+  const codigo = document.getElementById('cup-codigo').value.trim().toUpperCase();
+  const tipo = document.getElementById('cup-tipo').value;
+  const valor = parseNumber(document.getElementById('cup-valor').value);
+  if (!codigo || valor <= 0) { toast('Informe código e valor válidos', 'error'); return; }
+  if (tipo === 'percentual' && valor > 100) { toast('O desconto percentual não pode passar de 100%', 'error'); return; }
+  const db = getDB();
+  if (db.cupons.some(c => c.codigo === codigo)) { toast('Esse código já existe', 'error'); return; }
+  db.cupons.push({id:uid(),codigo,tipo,valor,validade:document.getElementById('cup-validade').value,limiteUsos:parseNumber(document.getElementById('cup-limite').value),usos:0,ativo:true,criadoEm:new Date().toISOString()});
+  registrarLog(db, 'Cupom criado', { Código: codigo, Tipo: tipo, Valor: tipo === 'percentual' ? `${valor}%` : formatBRL(valor) });
+  saveDB(db); toast('Cupom criado'); abrirGerenciadorCupons();
+}
+
+function excluirCupom(id) {
+  const db = getDB(); const c = db.cupons.find(x=>x.id===id);
+  if (!c) return;
+  db.cupons = db.cupons.filter(x=>x.id!==id); saveDB(db); toast('Cupom excluído'); abrirGerenciadorCupons();
 }
 
 function finalizarVenda() {
@@ -91,10 +165,14 @@ function finalizarVenda() {
   if (status === 'pendente' && !vencimento) { toast('Informe a data de vencimento', 'error'); return; }
   const db = getDB();
   const sub = carrinhoVenda.reduce((s, i) => s + i.valor * i.qtd, 0);
-  const desconto = Math.min(sub, parseNumber(document.getElementById('f-venda-desconto').value));
+  const manual = parseNumber(document.getElementById('f-venda-desconto').value);
+  const cupom = window.cupomVendaAplicado;
+  const descontoCupom = cupom ? calcularDescontoCupom(cupom, sub) : 0;
+  const desconto = Math.min(sub, manual + descontoCupom);
   const total = sub - desconto;
   const clienteId = document.getElementById('f-venda-cliente').value;
   const cliente = db.clientes.find(c => c.id === clienteId);
+  const nomeAvulso = document.getElementById('f-venda-avulso-nome').value.trim();
   carrinhoVenda.forEach(it => {
     const produto = db.estoque.find(p => p.id === it.id);
     if (produto) produto.qtd -= it.qtd;
@@ -105,17 +183,20 @@ function finalizarVenda() {
     numero: nextNumero(db, 'venda'),
     data: document.getElementById('f-venda-data').value || todayISO(),
     criadoEm: new Date().toISOString(),
-    cliente: cliente ? cliente.nome : 'Cliente avulso',
+    cliente: cliente ? cliente.nome : (nomeAvulso || 'Cliente avulso'),
     clienteId: clienteId || '',
     pagamento: document.getElementById('f-venda-forma').value,
     status,
     vencimento: status === 'pendente' ? vencimento : '',
     pagoEm: status === 'pago' ? todayISO() : '',
     desconto,
+    cupom: cupom ? cupom.codigo : '',
     total,
     itens: carrinhoVenda.map(it => ({ id: it.id, nome: it.nome, qtd: it.qtd, valor: it.valor, custo: it.custo }))
   };
   db.vendas.push(venda);
+  if (cupom) { const c = db.cupons.find(x => x.id === cupom.id); if (c) c.usos = Number(c.usos || 0) + 1; }
+  window.cupomVendaAplicado = null;
   registrarLog(db, 'Venda registrada', { Nota: venda.numero, Cliente: venda.cliente, Itens: venda.itens.length, Total: formatBRL(venda.total), Status: venda.status });
   saveDB(db);
   closeModal();
