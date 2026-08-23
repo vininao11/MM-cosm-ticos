@@ -1141,3 +1141,35 @@ select:focus { outline: none; border-color: var(--accent); background-color: var
   .notification-item { align-items:flex-start; flex-direction:column; }
   .notification-date { text-align:left; }
 }
+
+
+/* ---------- Refinos de acesso, transições e responsividade ---------- */
+.auth-screen { overflow-y: auto; overscroll-behavior: contain; padding: 24px 16px; transition: opacity .26s ease, transform .32s cubic-bezier(.22,.8,.36,1); }
+.auth-card { width: min(100%, 520px); max-height: calc(100vh - 48px); overflow: auto; scrollbar-width: thin; }
+.auth-screen.auth-leave { opacity: 0; transform: scale(.985) translateY(-8px); pointer-events: none; }
+#app.app-enter { animation: appEnter .46s cubic-bezier(.22,.8,.36,1); }
+@keyframes appEnter { from { opacity: 0; transform: translateY(14px) scale(.995); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.auth-step-card { animation: authStepIn .34s cubic-bezier(.22,.8,.36,1); }
+.auth-step-next { animation-name: authStepNext; }
+@keyframes authStepIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes authStepNext { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+.auth-progress { display: flex; gap: 6px; margin-bottom: 10px; }
+.auth-progress span { height: 4px; flex: 1; border-radius: 999px; background: var(--surface-3); transition: background .22s ease, transform .22s ease; }
+.auth-progress span.active { background: linear-gradient(90deg, var(--accent), #B48DF8); transform: scaleY(1.2); }
+.auth-step-label { font-size: 10px; text-transform: uppercase; letter-spacing: .9px; color: var(--accent); font-weight: 700; margin-bottom: 7px; }
+.auth-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.auth-btn-row { margin-top: 5px; }
+.auth-attempts { font-size: 11px; color: var(--text-faint); margin: -3px 0 12px; }
+.nav-icon-refined { width: 19px; height: 19px; stroke-width: 1.65; transition: transform .18s ease, stroke-width .18s ease; }
+.nav-item:hover .nav-icon-refined, .nav-item.active .nav-icon-refined { transform: scale(1.05); stroke-width: 2; }
+.icon-btn .icon-sm { width: 16px; height: 16px; }
+.tab-transition { animation: tabTransition .34s cubic-bezier(.22,.8,.36,1); }
+@keyframes tabTransition { from { opacity: 0; transform: translateY(7px); filter: blur(1px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
+.field-muted { opacity: .68; }
+
+@media (max-width: 520px) {
+  .auth-screen { padding: 12px; }
+  .auth-card { max-height: calc(100vh - 24px); padding: 26px 20px; border-radius: 20px; }
+  .auth-two-col { grid-template-columns: 1fr; gap: 0; }
+  .auth-step-label { font-size: 9.5px; }
+}
