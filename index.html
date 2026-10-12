@@ -564,6 +564,16 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="scan-overlay">
+  <div class="modal-card" style="max-width:440px;">
+    <div class="modal-card-head"><strong>Ler código de barras</strong><button class="icon-btn" id="scan-close">×</button></div>
+    <div style="position:relative;border-radius:14px;overflow:hidden;background:#111;">
+      <video id="scan-video" style="width:100%;display:block;aspect-ratio:4/3;object-fit:cover;" autoplay muted playsinline></video>
+      <div class="barcode-scan-line"></div>
+    </div>
+    <p class="panel-desc" style="margin-top:12px;">Aponte a câmera para o código de barras do produto. O código é preenchido automaticamente.</p>
+  </div>
+</div>
 <div id="toast-stack"></div>
 <div id="print-area"></div>
 

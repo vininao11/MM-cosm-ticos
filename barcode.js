@@ -84,11 +84,48 @@ const Barcode = (() => {
     try { if (cameraControl) cameraControl.stop(); } catch (e) {}
     cameraControl = null;
     cameraActive = false;
-    const v = document.getElementById('barcode-video');
-    if (v && v.srcObject) {
-      v.srcObject.getTracks().forEach(t => t.stop());
-      v.srcObject = null;
-    }
+    document.querySelectorAll('video').forEach(v => {
+      if (v.srcObject) { try { v.srcObject.getTracks().forEach(t => t.stop()); } catch (e) {} v.srcObject = null; }
+    });
+  }
+
+  // ---- Modal de leitura para cadastro de produtos ----
+  let scanCallback = null;
+  async function escanearCodigoModal(callback) {
+    scanCallback = callback;
+    const overlay = document.getElementById('scan-overlay');
+    if (overlay) overlay.classList.add('show');
+    const video = document.getElementById('scan-video');
+    const r = await startCamera(video, code => {
+      if (scanCallback) scanCallback(code);
+      fecharScanModal();
+    });
+    if (!r.ok) { if (typeof toast === 'function') toast(r.erro || 'Não foi possível acessar a câmera.', 'error'); fecharScanModal(); }
+  }
+  function fecharScanModal() {
+    stopCamera();
+    scanCallback = null;
+    const overlay = document.getElementById('scan-overlay');
+    if (overlay) overlay.classList.remove('show');
+  }
+
+  // Consulta pública gratuita (Open Beauty Facts, sem chave) para cosméticos.
+  async function consultarEAN(codigo) {
+    if (!codigo) return null;
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 9000);
+      const res = await fetch(`https://world.openbeautyfacts.org/api/v2/product/${encodeURIComponent(codigo)}.json`, { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (data.status !== 1 || !data.product) return null;
+      const p = data.product;
+      const nome = p.product_name_pt || p.product_name || p.generic_name_pt || p.generic_name || '';
+      const marca = p.brands ? p.brands.split(',')[0].trim() : '';
+      const categoria = (p.categories_tags && p.categories_tags[0]) ? String(p.categories_tags[0]).replace(/^en:/, '').replace(/-/g, ' ') : '';
+      return { nome, marca, categoria, imagem: p.image_url || '' };
+    } catch (e) { return null; }
   }
 
   // Busca produto no estoque por código de barras / SKU.
@@ -116,5 +153,5 @@ const Barcode = (() => {
     return { valido, tipo: c.length === 13 ? 'EAN-13' : c.length === 8 ? 'EAN-8' : 'UPC-A', mensagem: valido ? 'Código válido.' : 'Dígito verificador inconsistente.' };
   }
 
-  return { enablePhysicalScanner, disablePhysicalScanner, startCamera, stopCamera, lookupProduto, validarEAN, isCameraActive: () => cameraActive };
+  return { enablePhysicalScanner, disablePhysicalScanner, startCamera, stopCamera, lookupProduto, validarEAN, isCameraActive: () => cameraActive, escanearCodigoModal, fecharScanModal, consultarEAN };
 })();

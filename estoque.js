@@ -22,7 +22,14 @@ function formProdutoHTML(db, produto) {
       <label class="field wide"><span>Nome do produto</span><input type="text" id="f-prod-nome" value="${escapeHTML(p.nome || '')}" placeholder="Ex: 212 VIP Rosé 80ml"></label>
       <label class="field"><span>Marca</span><input type="text" id="f-prod-marca" value="${escapeHTML(p.marca || '')}"></label>
       <label class="field"><span>Categoria</span><select id="f-prod-categoria">${catOptions}</select></label>
-      <label class="field"><span>Código / SKU</span><input type="text" id="f-prod-codigo" value="${escapeHTML(p.codigo || '')}" placeholder="Opcional"></label>
+      <label class="field wide"><span>Código de barras / SKU</span>
+        <div class="inline-field">
+          <input type="text" id="f-prod-codigo" value="${escapeHTML(p.codigo || '')}" placeholder="Posicione o cursor e passe o leitor, ou use Ler/Consultar">
+          <button type="button" class="btn btn-outline btn-sm" id="btn-prod-ler-codigo">📷 Ler</button>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-prod-consultar">🔍 Consultar</button>
+        </div>
+        <small class="field-hint">Leitor físico: clique no campo e passe o código. Consultar busca nome/marca/foto automaticamente.</small>
+      </label>
       <label class="field wide"><span>Códigos de barras adicionais (um por linha)</span><textarea id="f-prod-codigos" rows="2" placeholder="7891234567890&#10;7890987654321">${escapeHTML((p.codigos || []).join('\n'))}</textarea></label>
       <label class="field"><span>Quantidade em estoque</span><input type="number" id="f-prod-qtd" min="0" step="1" value="${p.qtd ?? 0}"></label>
       <label class="field"><span>Estoque mínimo</span><input type="number" id="f-prod-min" min="0" step="1" value="${p.minimo ?? db.config.estoqueMinimo}"></label>
@@ -46,6 +53,32 @@ function abrirModalProduto(id) {
   openModal(formProdutoHTML(db, produto));
   document.getElementById('btn-salvar-produto').addEventListener('click', () => salvarProduto(id));
   document.getElementById('btn-cancelar-produto').addEventListener('click', closeModal);
+  document.getElementById('btn-prod-ler-codigo').addEventListener('click', () => {
+    Barcode.escanearCodigoModal(code => {
+      const campo = document.getElementById('f-prod-codigo');
+      if (campo && !campo.value.trim()) campo.value = code;
+      else {
+        const ta = document.getElementById('f-prod-codigos');
+        if (ta) ta.value = (ta.value ? ta.value + '\n' : '') + code;
+      }
+      toast('Código lido: ' + code, 'success');
+    });
+  });
+  document.getElementById('btn-prod-consultar').addEventListener('click', async () => {
+    const codigo = document.getElementById('f-prod-codigo').value.trim();
+    if (!codigo) { toast('Informe ou leia um código primeiro.', 'error'); return; }
+    const btn = document.getElementById('btn-prod-consultar');
+    btn.textContent = 'Consultando...'; btn.disabled = true;
+    const dados = await Barcode.consultarEAN(codigo);
+    btn.textContent = '🔍 Consultar'; btn.disabled = false;
+    if (!dados || !dados.nome) { toast('Produto não encontrado na base pública. Cadastre os dados manualmente.'); return; }
+    if (dados.nome && !document.getElementById('f-prod-nome').value.trim()) document.getElementById('f-prod-nome').value = dados.nome;
+    if (dados.marca && !document.getElementById('f-prod-marca').value.trim()) document.getElementById('f-prod-marca').value = dados.marca;
+    if (dados.imagem && !produtoImagemPendente) {
+      try { const resp = await fetch(dados.imagem); const blob = await resp.blob(); produtoImagemPendente = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(blob); }); } catch (e) {}
+    }
+    toast('Dados do produto preenchidos automaticamente.', 'success');
+  });
   document.getElementById('f-prod-imagem').addEventListener('change', e => {
     const file = e.target.files[0];
     if (!file) return;
