@@ -714,24 +714,29 @@ function bindGlobalEvents() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  bindGlobalEvents();
-  initEstoque();
-  initClientes();
-  initVendas();
-  initCompras();
-  initFinanceiro();
-  initRegistros();
-  initRelatorios();
-  initPDV();
-  initAnalises();
-  initCatalogo();
-  initMensagens();
-  // Datas padrão nos filtros
-  const hoje = todayISO();
-  const ini = new Date(); ini.setDate(ini.getDate() - 30);
-  ['rel-data-inicio', 'an-data-inicio'].forEach(id => { const el = document.getElementById(id); if (el && !el.value) el.value = ini.toISOString().split('T')[0]; });
-  ['rel-data-fim', 'an-data-fim'].forEach(id => { const el = document.getElementById(id); if (el && !el.value) el.value = hoje; });
-  renderNotificacoes();
-  setInterval(renderNotificacoes, 60000);
-  initAuth();
+  // Login primeiro: nenhum erro posterior pode bloquear a tela de acesso.
+  try { initAuth(); } catch (e) { console.error('initAuth falhou:', e); }
+  try {
+    bindGlobalEvents();
+    initEstoque();
+    initClientes();
+    initVendas();
+    initCompras();
+    initFinanceiro();
+    initRegistros();
+    initRelatorios();
+    initPDV();
+    initAnalises();
+    initCatalogo();
+    initMensagens();
+    const hoje = todayISO();
+    const ini = new Date(); ini.setDate(ini.getDate() - 30);
+    ['rel-data-inicio', 'an-data-inicio'].forEach(id => { const el = document.getElementById(id); if (el && !el.value) el.value = ini.toISOString().split('T')[0]; });
+    ['rel-data-fim', 'an-data-fim'].forEach(id => { const el = document.getElementById(id); if (el && !el.value) el.value = hoje; });
+    renderNotificacoes();
+    setInterval(renderNotificacoes, 60000);
+  } catch (e) {
+    console.error('Erro ao inicializar módulos:', e);
+    try { toast('Houve um erro ao carregar alguns módulos. O login continua disponível.', 'error'); } catch (_) {}
+  }
 });
