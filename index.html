@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
-<script src="https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/zxing-browser.min.js" defer></script>
 </head>
 <body>
 
@@ -340,8 +340,9 @@
             <select id="fin-periodo"><option value="mes">Este mês</option><option value="mes-passado">Mês passado</option><option value="30d">Últimos 30 dias</option><option value="ano">Este ano</option><option value="tudo">Todo o período</option></select>
           </div>
         </div>
-        <div class="kpi-row">
+        <div class="kpi-row" style="grid-template-columns:repeat(5,1fr);">
           <div class="kpi"><span class="kpi-label">Receita recebida</span><strong class="kpi-value" id="fin-kpi-receita">R$ 0,00</strong></div>
+          <div class="kpi"><span class="kpi-label">Custo (CMV)</span><strong class="kpi-value" id="fin-kpi-cmv">R$ 0,00</strong></div>
           <div class="kpi"><span class="kpi-label">A receber (previsto)</span><strong class="kpi-value" id="fin-kpi-previsto">R$ 0,00</strong></div>
           <div class="kpi"><span class="kpi-label">Lucro bruto</span><strong class="kpi-value" id="fin-kpi-lucro">R$ 0,00</strong></div>
           <div class="kpi"><span class="kpi-label">Compras pagas no período</span><strong class="kpi-value" id="fin-kpi-compras">R$ 0,00</strong></div>
@@ -455,6 +456,9 @@
       <section class="view" id="view-registros">
         <div class="panel">
           <div class="panel-head"><h2>Registros de atividade</h2><button class="btn btn-outline btn-sm" id="btn-limpar-logs">Limpar registros</button></div>
+          <div style="padding:14px 20px 0;">
+            <div class="search-field" style="max-width:380px;"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.2"/><path d="m12.4 12.4 4 4"/></svg><input type="text" id="registros-busca" placeholder="Buscar por ação, usuário ou detalhe..."></div>
+          </div>
           <div class="table-scroll">
             <table class="table">
               <thead><tr><th>Data</th><th>Usuário</th><th>Ação</th><th>Detalhes</th></tr></thead>

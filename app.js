@@ -737,6 +737,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(renderNotificacoes, 60000);
   } catch (e) {
     console.error('Erro ao inicializar módulos:', e);
-    try { toast('Houve um erro ao carregar alguns módulos. O login continua disponível.', 'error'); } catch (_) {}
+    try { toast('Módulo com erro: ' + (e && e.message ? e.message : String(e)) + ' — o login continua disponível.', 'error'); } catch (_) {}
   }
 });
