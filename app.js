@@ -6,7 +6,7 @@ let notaAtual = null;
 
 function defaultDB() {
   return {
-    config: { nome: 'M&M Cosméticos', telefone: '', endereco: '', estoqueMinimo: 3, logo: '', categorias: ['Perfumaria', 'Maquiagem', 'Skincare', 'Cabelo', 'Corpo e Banho', 'Unhas'], contVenda: 0, contCompra: 0 },
+    config: { nome: 'M&M Cosméticos', telefone: '', endereco: '', estoqueMinimo: 3, logo: '', msgAgradecimento: 'Obrigada pela preferência! Volte sempre. 💜', categorias: ['Perfumaria', 'Maquiagem', 'Skincare', 'Cabelo', 'Corpo e Banho', 'Unhas'], contVenda: 0, contCompra: 0, msgTemplates: [] },
     estoque: [],
     vendas: [],
     compras: [],
@@ -181,36 +181,138 @@ function enviarNotaWhatsApp() {
   if (!notaAtual) return;
   const item = notaAtual;
   const db = getDB();
-  let whats = '';
-  whats = item.clienteWhatsapp || '';
+  let whats = item.clienteWhatsapp || '';
   if (!whats && item.clienteId) {
     const cliente = db.clientes.find(c => c.id === item.clienteId);
     if (cliente) whats = cliente.whatsapp || '';
   }
   const phone = whats.replace(/\D/g, '');
-  if (!phone) { toast('Esse cliente não tem WhatsApp cadastrado', 'error'); return; }
-  let texto = `Olá${item.cliente ? ', ' + item.cliente : ''}! Segue o resumo do pedido ${item.numero}:\n\n`;
-  item.itens.forEach(it => { texto += `- ${it.nome} - ${it.qtd}x ${formatBRL(it.valor)}\n`; });
-  texto += `\nTotal: ${formatBRL(item.total)}\n${db.config.nome}`;
+  if (!phone) { toast('Esse cliente não tem WhatsApp cadastrado.', 'error'); return; }
+  const ctx = contextoDaVenda(db, item, item.parcelas ? item.parcelas.find(p => p.status === 'pendente') : null);
+  const texto = getMensagemAtiva(db, 'comprovante', ctx) ||
+    `Olá${item.cliente ? ', ' + item.cliente : ''}! Segue o comprovante da compra ${item.numero} na ${db.config.nome}. Total: ${formatBRL(item.total)}.`;
+  gerarNotaPNGBlob().then(blob => {
+    if (blob && navigator.canShare && navigator.canShare({ files: [new File([blob], 'comprovante.png', { type: 'image/png' })] })) {
+      const file = new File([blob], `comprovante-${item.numero}.png`, { type: 'image/png' });
+      navigator.share({ title: `Comprovante ${item.numero}`, text: texto, files: [file] })
+        .then(() => toast('Comprovante e mensagem prontos para envio.', 'success'))
+        .catch(() => abrirWhatsApp(phone, texto, blob));
+    } else {
+      abrirWhatsApp(phone, texto, blob);
+    }
+  });
+}
+function abrirWhatsApp(phone, texto, blob) {
+  if (blob) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `comprovante-${notaAtual ? notaAtual.numero : 'venda'}.png`;
+    a.click();
+    toast('Imagem baixada. Anexe-a na conversa do WhatsApp.', 'success');
+  }
   window.open(`https://wa.me/${phone}?text=${encodeURIComponent(texto)}`, '_blank');
+}
+function gerarNotaPNG() {
+  gerarNotaPNGBlob().then(blob => {
+    if (!blob) { toast('Não foi possível gerar a imagem.', 'error'); return; }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `comprovante-${notaAtual ? notaAtual.numero : 'venda'}.png`;
+    a.click();
+    toast('Imagem do comprovante baixada.', 'success');
+  });
+}
+function gerarNotaPNGBlob() {
+  return new Promise(resolve => {
+    if (!notaAtual) return resolve(null);
+    const db = getDB();
+    const item = notaAtual;
+    const W = 720, lineH = 26, pad = 36;
+    const rows = [];
+    rows.push({ tipo: 'titulo', texto: db.config.nome, size: 30, cor: '#632148' });
+    if (db.config.endereco || db.config.telefone) rows.push({ tipo: 'texto', texto: `${db.config.endereco || ''} ${db.config.telefone ? '· ' + db.config.telefone : ''}`.trim(), size: 13, cor: '#6E6573' });
+    rows.push({ tipo: 'linha' });
+    rows.push({ tipo: 'direita', texto: `${item.numero} · ${formatDateBR(item.data)}`, size: 14, cor: '#2B2430' });
+    rows.push({ tipo: 'texto', texto: `${item.type === 'venda' ? 'Cliente' : 'Fornecedor'}: ${item.cliente || item.fornecedor || '-'}`, size: 14, cor: '#2B2430' });
+    if (item.pagamento) rows.push({ tipo: 'texto', texto: `Pagamento: ${item.pagamento}`, size: 14, cor: '#2B2430' });
+    rows.push({ tipo: 'linha' });
+    item.itens.forEach(it => rows.push({ tipo: 'item', nome: it.nome, qtd: it.qtd, valor: it.valor }));
+    rows.push({ tipo: 'linha' });
+    if (item.desconto) rows.push({ tipo: 'direita', texto: `Desconto: -${formatBRL(item.desconto)}`, size: 14, cor: '#6E6573' });
+    rows.push({ tipo: 'direita', texto: `TOTAL: ${formatBRL(item.total)}`, size: 20, cor: '#632148' });
+    if (item.parcelas && item.parcelas.length) rows.push({ tipo: 'texto', texto: `Recebido: ${formatBRL(item.valorRecebido || 0)}  ·  Saldo pendente: ${formatBRL(item.saldoPendente || 0)}`, size: 13, cor: '#B8860B' });
+    if (db.config.msgAgradecimento) rows.push({ tipo: 'texto', texto: db.config.msgAgradecimento, size: 13, cor: '#6E6573', italic: true });
+    rows.push({ tipo: 'texto', texto: 'Comprovante interno — não é documento fiscal.', size: 11, cor: '#A39BA6', italic: true });
+    let H = pad * 2;
+    rows.forEach(r => { H += r.tipo === 'linha' ? 16 : lineH + (r.size && r.size > 18 ? 6 : 0); });
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FFFDF9'; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = '#E8DFD2'; ctx.lineWidth = 2; ctx.strokeRect(1, 1, W - 2, H - 2);
+    let y = pad;
+    const desenhar = (r) => {
+      ctx.textBaseline = 'top';
+      if (r.tipo === 'linha') { ctx.strokeStyle = '#D8CCBC'; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(pad, y + 6); ctx.lineTo(W - pad, y + 6); ctx.stroke(); ctx.setLineDash([]); y += 16; return; }
+      const italic = r.italic ? 'italic ' : '';
+      ctx.font = `${italic}${r.size || 14}px Inter, sans-serif`;
+      ctx.fillStyle = r.cor || '#2B2430';
+      if (r.tipo === 'direita') { ctx.textAlign = 'right'; ctx.fillText(r.texto, W - pad, y); }
+      else if (r.tipo === 'item') { ctx.textAlign = 'left'; ctx.fillText(`${r.qtd}x  ${r.nome}`, pad, y); ctx.textAlign = 'right'; ctx.fillText(formatBRL(r.qtd * r.valor), W - pad, y); }
+      else { ctx.textAlign = 'left'; ctx.fillText(r.texto, pad, y); }
+      y += lineH + (r.size && r.size > 18 ? 6 : 0);
+    };
+    const finalizar = () => { rows.forEach(desenhar); canvas.toBlob(b => resolve(b), 'image/png'); };
+    if (db.config.logo) {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height; const maxW = 120, maxH = 80;
+        if (w > maxW) { h *= maxW / w; w = maxW; }
+        if (h > maxH) { w *= maxH / h; h = maxH; }
+        ctx.drawImage(img, pad, y, w, h); y += h + 10; finalizar();
+      };
+      img.onerror = finalizar;
+      img.src = db.config.logo;
+    } else finalizar();
+  });
 }
 
 function renderNota(item, db) {
   const isVenda = item.type === 'venda';
   const pessoa = isVenda ? item.cliente : item.fornecedor;
-  const stampClass = item.status === 'pendente' ? 'stamp stamp-pendente' : 'stamp';
-  const stampLabel = item.status === 'pendente' ? 'PENDENTE' : 'PAGO';
+  const statusLabel = item.status === 'pago' ? 'PAGO' : item.status === 'parcelado' ? 'PARCELADO' : 'PENDENTE';
+  const stampClass = item.status === 'pago' ? 'stamp' : 'stamp stamp-pendente';
+  const logoHtml = db.config.logo ? `<img class="note-logo" src="${db.config.logo}" alt="Logo">` : '';
+  const agradecimento = db.config.msgAgradecimento ? `<div class="note-foot" style="border-top:none; padding-top:6px; font-style:normal; color:#632148; font-weight:600;">${escapeHTML(db.config.msgAgradecimento)}</div>` : '';
+  let parcelasHtml = '';
+  if (isVenda && item.parcelas && item.parcelas.length) {
+    parcelasHtml = `<div style="margin-top:10px; border-top:1px dashed #D8CCBC; padding-top:8px;">
+      <div class="note-row"><span>Total com juros</span><b>${formatBRL(item.totalComJuros || item.total)}</b></div>
+      <div class="note-row"><span>Já recebido</span><b>${formatBRL(item.valorRecebido || 0)}</b></div>
+      <div class="note-row"><span>Saldo pendente</span><b style="color:#B8860B;">${formatBRL(item.saldoPendente || 0)}</b></div>
+      <table class="note-items" style="margin-top:6px;">
+        <thead><tr><th>Parcela</th><th>Vencimento</th><th>Valor</th><th>Situação</th></tr></thead>
+        <tbody>${item.parcelas.map(p => `<tr><td>${p.numero}ª</td><td>${formatDateBR(p.vencimento)}</td><td>${formatBRL(p.valor)}</td><td>${p.status === 'pago' ? 'Pago' : 'Pendente'}</td></tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+  }
+  let recebidoHtml = '';
+  if (isVenda && item.valorRecebido !== undefined) {
+    recebidoHtml = `<div class="note-row"><span>Valor recebido</span><b>${formatBRL(item.valorRecebido || 0)}</b></div>
+      <div class="note-row"><span>Saldo pendente</span><b style="color:${(item.saldoPendente || 0) > 0 ? '#B8860B' : '#2D8659'};">${formatBRL(item.saldoPendente || 0)}</b></div>`;
+  }
   const html = `
     <div class="note-paper">
-      <div class="${stampClass}">${stampLabel}</div>
+      <div class="${stampClass}">${statusLabel}</div>
       <div class="note-head">
         <div>
+          ${logoHtml}
           <div class="note-store">${escapeHTML(db.config.nome)}</div>
           <div class="note-store-meta">${escapeHTML(db.config.endereco || '')}${db.config.endereco && db.config.telefone ? '<br>' : ''}${escapeHTML(db.config.telefone || '')}</div>
         </div>
         <div class="note-id">
           <strong>${escapeHTML(item.numero)}</strong>
-          <span>${isVenda ? 'Nota de venda' : 'Nota de compra'} · ${formatDateBR(item.data)}</span>
+          <span>${isVenda ? 'Comprovante de venda' : 'Nota de compra'} · ${formatDateBR(item.data)}</span>
         </div>
       </div>
       <div class="note-row"><span>${isVenda ? 'Cliente' : 'Fornecedor'}</span><b>${escapeHTML(pessoa || '-')}</b></div>
@@ -222,6 +324,9 @@ function renderNota(item, db) {
       </table>
       ${item.desconto ? `<div class="note-row"><span>Desconto</span><b>-${formatBRL(item.desconto)}</b></div>` : ''}
       <div class="note-total"><span>Total</span><strong>${formatBRL(item.total)}</strong></div>
+      ${recebidoHtml}
+      ${parcelasHtml}
+      ${agradecimento}
       <div class="note-foot">Comprovante interno — não é documento fiscal</div>
     </div>`;
   openNoteModal(html, item);
@@ -280,15 +385,18 @@ function renderChart(container, labels, series) {
 
 const VIEW_META = {
   painel: ['Painel', 'Resumo geral da loja'],
+  pdv: ['PDV · Caixa', 'Ponto de venda com leitor de código de barras'],
   estoque: ['Estoque', 'Produtos e níveis de inventário'],
   vendas: ['Vendas', 'Notas de venda emitidas'],
   clientes: ['Clientes', 'Relacionamento com clientes'],
   compras: ['Compras', 'Entradas de mercadoria no estoque'],
   pendencias: ['Pendências', 'Contas a receber e a pagar'],
-  financeiro: ['Financeiro', 'Resultado da loja com base nas vendas'],
-  relatorios: ['Relatórios', 'Indicadores e relatórios filtráveis por período'],
-  registros: ['Registros', 'Histórico de ações realizadas no sistema'],
-  config: ['Configurações', 'Preferências do sistema']
+  financeiro: ['Financeiro', 'Resultado e fluxo de caixa'],
+  analises: ['Análises', 'Inteligência comercial e rankings'],
+  catalogo: ['Catálogo', 'Vitrine virtual para compartilhar'],
+  relatorios: ['Relatórios', 'Indicadores filtráveis por período'],
+  registros: ['Registros', 'Histórico de ações realizadas'],
+  config: ['Configurações', 'Loja, mensagens, usuários e dados']
 };
 
 function setView(id) {
@@ -361,7 +469,8 @@ function abrirNotificacoes() {
 
 function updatePendenciasBadge() {
   const db = getDB();
-  const count = db.vendas.filter(v => v.status === 'pendente').length + db.compras.filter(c => c.status === 'pendente').length;
+  const count = db.vendas.filter(v => (v.status === 'pendente') || (v.status === 'parcelado' && (v.saldoPendente || 0) > 0)).length
+    + db.compras.filter(c => c.status === 'pendente').length;
   const badge = document.getElementById('nav-badge-pend');
   badge.hidden = count === 0;
   badge.textContent = count;
@@ -424,6 +533,7 @@ function salvarConfiguracoes() {
   db.config.telefone = document.getElementById('cfg-telefone').value.trim();
   db.config.endereco = document.getElementById('cfg-endereco').value.trim();
   db.config.estoqueMinimo = parseNumber(document.getElementById('cfg-estoque-minimo').value) || 1;
+  db.config.msgAgradecimento = document.getElementById('cfg-msg-agradecimento').value.trim();
   registrarLog(db, 'Configurações da loja atualizadas', { Loja: db.config.nome });
   saveDB(db);
   renderBrandMark();
@@ -454,12 +564,63 @@ function removerLogo() {
 function applyConfigToUI() {
   const db = getDB();
   document.getElementById('cfg-nome-loja').value = db.config.nome;
-  document.getElementById('cfg-telefone').value = db.config.telefone;
-  document.getElementById('cfg-endereco').value = db.config.endereco;
+  document.getElementById('cfg-telefone').value = db.config.telefone || '';
+  document.getElementById('cfg-endereco').value = db.config.endereco || '';
   document.getElementById('cfg-estoque-minimo').value = db.config.estoqueMinimo;
+  const msgA = document.getElementById('cfg-msg-agradecimento');
+  if (msgA) msgA.value = db.config.msgAgradecimento || '';
   renderBrandMark();
   renderCategoriaChips();
   renderCategoriaOptions();
+}
+
+// ---- Gestão de usuários ----
+function renderUsuarios() {
+  const db = getDB();
+  const tbody = document.getElementById('cfg-usuarios-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = db.usuarios.map(u => `
+    <tr>
+      <td><strong>${escapeHTML(u.nome)} ${escapeHTML(u.sobrenome)}</strong></td>
+      <td class="mono">@${escapeHTML(u.username)}</td>
+      <td>${escapeHTML(u.email || '-')}</td>
+      <td><span class="badge badge-accent">${u.perfil || 'Administrador'}</span></td>
+      <td>${formatDateBR((u.criadoEm || '').split('T')[0])}</td>
+      <td class="row-actions">${db.usuarios.length > 1 ? `<button class="icon-btn danger" data-del-user="${u.id}">${icon('trash')}</button>` : ''}</td>
+    </tr>`).join('') || '<tr><td colspan="6" class="empty-hint">Nenhum usuário.</td></tr>';
+  tbody.querySelectorAll('[data-del-user]').forEach(b => b.addEventListener('click', () => {
+    if (!confirm('Excluir este usuário?')) return;
+    const db2 = getDB();
+    db2.usuarios = db2.usuarios.filter(u => u.id !== b.dataset.delUser);
+    saveDB(db2); renderUsuarios(); toast('Usuário excluído.');
+  }));
+}
+function abrirModalNovoUsuario() {
+  openModal(`<h3>Novo usuário</h3>
+    <div class="form-grid">
+      <label class="field"><span>Nome</span><input type="text" id="nu-nome"></label>
+      <label class="field"><span>Sobrenome</span><input type="text" id="nu-sobrenome"></label>
+      <label class="field"><span>E-mail</span><input type="email" id="nu-email"></label>
+      <label class="field"><span>Perfil</span><select id="nu-perfil"><option>Administrador</option><option>Proprietário</option><option>Vendedor</option><option>Suporte</option></select></label>
+      <label class="field"><span>Senha</span><input type="password" id="nu-senha"></label>
+      <label class="field"><span>Confirmar senha</span><input type="password" id="nu-senha2"></label>
+    </div>
+    <div class="btn-row"><button class="btn btn-ghost" id="nu-cancelar">Cancelar</button><button class="btn btn-primary" id="nu-salvar">Criar usuário</button></div>`);
+  document.getElementById('nu-cancelar').addEventListener('click', closeModal);
+  document.getElementById('nu-salvar').addEventListener('click', async () => {
+    const nome = document.getElementById('nu-nome').value.trim();
+    const sobrenome = document.getElementById('nu-sobrenome').value.trim();
+    const email = document.getElementById('nu-email').value.trim();
+    const perfil = document.getElementById('nu-perfil').value;
+    const senha = document.getElementById('nu-senha').value;
+    if (!nome || !sobrenome || senha.length < 4) { toast('Preencha nome, sobrenome e senha (mín. 4 caracteres).', 'error'); return; }
+    if (senha !== document.getElementById('nu-senha2').value) { toast('As senhas não coincidem.', 'error'); return; }
+    const db = getDB();
+    const username = gerarUsernameUnico(db, nome, sobrenome);
+    db.usuarios.push({ id: uid(), nome, sobrenome, username, email, perfil, senhaHash: await hashSenha(senha), criadoEm: new Date().toISOString() });
+    registrarLog(db, 'Usuário criado', { Usuário: `${nome} ${sobrenome}`, Login: username, Perfil: perfil });
+    saveDB(db); closeModal(); renderUsuarios(); toast(`Usuário @${username} criado.`, 'success');
+  });
 }
 
 function exportarBackup() {
@@ -524,21 +685,32 @@ function bindGlobalEvents() {
   document.getElementById('modal-close').addEventListener('click', closeModal);
   document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target.id === 'modal-overlay') closeModal(); });
   document.getElementById('note-close').addEventListener('click', closeNoteModal);
-  document.getElementById('btn-fechar-nota').addEventListener('click', closeNoteModal);
   document.getElementById('note-overlay').addEventListener('click', e => { if (e.target.id === 'note-overlay') closeNoteModal(); });
   document.getElementById('btn-imprimir-nota').addEventListener('click', imprimirNotaAtual);
+  document.getElementById('btn-png-nota').addEventListener('click', gerarNotaPNG);
   document.getElementById('btn-whatsapp-nota').addEventListener('click', enviarNotaWhatsApp);
-  document.getElementById('detail-close').addEventListener('click', () => document.getElementById('detail-overlay').classList.remove('show'));
-  document.getElementById('detail-overlay').addEventListener('click', e => { if (e.target.id === 'detail-overlay') e.currentTarget.classList.remove('show'); });
   document.getElementById('btn-salvar-config').addEventListener('click', salvarConfiguracoes);
-  document.getElementById('btn-remover-logo').addEventListener('click', removerLogo);
   document.getElementById('cfg-logo-input').addEventListener('change', handleLogoUpload);
   document.getElementById('btn-add-categoria').addEventListener('click', adicionarCategoria);
   document.getElementById('cfg-nova-categoria').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); adicionarCategoria(); } });
-  document.getElementById('btn-exportar-dados').addEventListener('click', exportarBackup);
+  document.getElementById('btn-exportar-backup').addEventListener('click', exportarBackup);
   document.getElementById('cfg-importar-input').addEventListener('change', importarBackup);
-  document.getElementById('btn-reset-sistema').addEventListener('click', resetarSistema);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeNoteModal(); document.getElementById('detail-overlay').classList.remove('show'); } });
+  document.getElementById('btn-limpar-dados').addEventListener('click', resetarSistema);
+  document.getElementById('btn-limpar-logs')?.addEventListener('click', () => {
+    if (!confirm('Limpar todos os registros de atividade?')) return;
+    const db = getDB(); db.logs = []; saveDB(db); refreshCurrentView(); toast('Registros limpos.');
+  });
+  // Tabs de configurações
+  document.querySelectorAll('#config-tabs .tab-btn').forEach(tab => tab.addEventListener('click', () => {
+    document.querySelectorAll('#config-tabs .tab-btn').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.config-tab').forEach(s => s.hidden = true);
+    document.getElementById(tab.dataset.tab).hidden = false;
+    if (tab.dataset.tab === 'cfg-mensagens') renderMsgTemplates();
+    if (tab.dataset.tab === 'cfg-usuarios') renderUsuarios();
+  }));
+  document.getElementById('btn-novo-usuario')?.addEventListener('click', abrirModalNovoUsuario);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeNoteModal(); Barcode.stopCamera(); } });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -550,6 +722,15 @@ document.addEventListener('DOMContentLoaded', () => {
   initFinanceiro();
   initRegistros();
   initRelatorios();
+  initPDV();
+  initAnalises();
+  initCatalogo();
+  initMensagens();
+  // Datas padrão nos filtros
+  const hoje = todayISO();
+  const ini = new Date(); ini.setDate(ini.getDate() - 30);
+  ['rel-data-inicio', 'an-data-inicio'].forEach(id => { const el = document.getElementById(id); if (el && !el.value) el.value = ini.toISOString().split('T')[0]; });
+  ['rel-data-fim', 'an-data-fim'].forEach(id => { const el = document.getElementById(id); if (el && !el.value) el.value = hoje; });
   renderNotificacoes();
   setInterval(renderNotificacoes, 60000);
   initAuth();

@@ -119,6 +119,9 @@ function renderFinanceiro() {
   const cmv = vendasPagas.reduce((s, v) => s + v.itens.reduce((si, it) => si + (it.custo || 0) * it.qtd, 0), 0);
   const comprasTotal = comprasPagas.reduce((s, c) => s + c.total, 0);
   document.getElementById('fin-kpi-receita').textContent = formatBRL(receita);
+  const previsto = db.vendas.filter(v => (v.status === 'pendente' || v.status === 'parcelado') && (v.saldoPendente || 0) > 0).reduce((s, v) => s + (v.saldoPendente || v.total), 0);
+  const elPrev = document.getElementById('fin-kpi-previsto');
+  if (elPrev) elPrev.textContent = formatBRL(previsto);
   document.getElementById('fin-kpi-cmv').textContent = formatBRL(cmv);
   document.getElementById('fin-kpi-lucro').textContent = formatBRL(receita - cmv);
   document.getElementById('fin-kpi-compras').textContent = formatBRL(comprasTotal);
