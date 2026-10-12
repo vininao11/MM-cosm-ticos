@@ -581,5 +581,21 @@
 <script src="catalogo.js"></script>
 <script src="mensagens.js"></script>
 <script src="registros.js"></script>
+<script>
+(function(){
+  var erros = [];
+  window.addEventListener('error', function(e){ erros.push((e.message||'Erro')+' (linha '+(e.lineno||'?')+': '+(e.filename||'').split('/').pop()+')'); });
+  setTimeout(function(){
+    var body = document.getElementById('auth-body');
+    var auth = document.getElementById('auth-screen');
+    if (body && auth && !auth.hidden && body.innerHTML.trim() === '') {
+      var msg = '<b>Não foi possível carregar o login.</b><br><br>';
+      msg += erros.length ? '<b>Erro:</b><br><code style="font-size:11px;display:block;max-height:120px;overflow:auto;text-align:left;background:#FFF5F5;padding:8px;border-radius:6px;">' + erros.join('<br>') + '</code><br>' : 'Tente recarregar.<br>';
+      msg += '<br><button onclick="location.reload(true)" style="padding:10px 18px;border:none;border-radius:10px;background:#7B2D5B;color:#fff;cursor:pointer;font-weight:600;">Recarregar</button>';
+      body.innerHTML = '<div style="text-align:center;padding:10px;color:#8B1E3F;font-size:14px;line-height:1.6;">' + msg + '</div>';
+    }
+  }, 3000);
+})();
+</script>
 </body>
 </html>
