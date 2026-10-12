@@ -23,6 +23,7 @@ function formProdutoHTML(db, produto) {
       <label class="field"><span>Marca</span><input type="text" id="f-prod-marca" value="${escapeHTML(p.marca || '')}"></label>
       <label class="field"><span>Categoria</span><select id="f-prod-categoria">${catOptions}</select></label>
       <label class="field"><span>Código / SKU</span><input type="text" id="f-prod-codigo" value="${escapeHTML(p.codigo || '')}" placeholder="Opcional"></label>
+      <label class="field wide"><span>Códigos de barras adicionais (um por linha)</span><textarea id="f-prod-codigos" rows="2" placeholder="7891234567890&#10;7890987654321">${escapeHTML((p.codigos || []).join('\n'))}</textarea></label>
       <label class="field"><span>Quantidade em estoque</span><input type="number" id="f-prod-qtd" min="0" step="1" value="${p.qtd ?? 0}"></label>
       <label class="field"><span>Estoque mínimo</span><input type="number" id="f-prod-min" min="0" step="1" value="${p.minimo ?? db.config.estoqueMinimo}"></label>
       <label class="field"><span>Preço de custo (R$)</span><input type="number" id="f-prod-custo" min="0" step="0.01" value="${p.custo ?? ''}"></label>
@@ -60,6 +61,7 @@ function salvarProduto(id) {
     marca: document.getElementById('f-prod-marca').value.trim(),
     categoria: document.getElementById('f-prod-categoria').value,
     codigo: document.getElementById('f-prod-codigo').value.trim(),
+    codigos: (document.getElementById('f-prod-codigos').value || '').split('\n').map(s => s.trim()).filter(Boolean),
     qtd: parseNumber(document.getElementById('f-prod-qtd').value),
     minimo: parseNumber(document.getElementById('f-prod-min').value),
     custo: parseNumber(document.getElementById('f-prod-custo').value),

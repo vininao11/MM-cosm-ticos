@@ -194,6 +194,8 @@ function finalizarVenda() {
     status,
     vencimento: status === 'pendente' ? vencimento : '',
     pagoEm: status === 'pago' ? todayISO() : '',
+    valorRecebido: status === 'pago' ? total : 0,
+    saldoPendente: status === 'pago' ? 0 : total,
     desconto,
     cupom: cupom ? cupom.codigo : '',
     total,
@@ -217,11 +219,28 @@ function marcarVendaPaga(id) {
   if (!venda) return;
   venda.status = 'pago';
   venda.pagoEm = todayISO();
+  venda.valorRecebido = venda.total;
+  venda.saldoPendente = 0;
   registrarLog(db, 'Venda marcada como paga', { Nota: venda.numero, Cliente: venda.cliente, Total: formatBRL(venda.total) });
   saveDB(db);
   refreshCurrentView();
   renderVendas();
   toast('Venda marcada como paga');
+}
+function receberParcela(vendaId) {
+  const db = getDB();
+  const venda = db.vendas.find(v => v.id === vendaId);
+  if (!venda || !venda.parcelas) return;
+  const parcela = venda.parcelas.find(p => p.status === 'pendente');
+  if (!parcela) return;
+  const valor = prompt(`Receber a ${parcela.numero}ª parcela de ${formatBRL(parcela.valor)}?\nDeixe em branco para receber o valor total, ou informe um valor parcial.`, formatBRL(parcela.valor - (parcela.recebido || 0)));
+  if (valor === null) return;
+  const num = parseNumber(String(valor).replace(/\./g, '').replace(',', '.'));
+  pagarParcela(vendaId, parcela.id, num > 0 ? num : undefined);
+  saveDB(getDB());
+  refreshCurrentView();
+  renderVendas();
+  toast('Pagamento registrado.', 'success');
 }
 
 function excluirVenda(id) {
@@ -261,22 +280,31 @@ function renderVendas() {
     scrollWrap.style.display = '';
     empty.hidden = true;
   }
-  tbody.innerHTML = lista.map(v => `
+  const statusLabel = v => v.status === 'pago' ? 'Pago' : v.status === 'parcelado' ? 'Parcelado' : 'Pendente';
+  tbody.innerHTML = lista.map(v => {
+    const recebido = v.valorRecebido !== undefined ? v.valorRecebido : (v.status === 'pago' ? v.total : 0);
+    const saldo = v.saldoPendente !== undefined ? v.saldoPendente : (v.status === 'pago' ? 0 : v.total);
+    const proxParcela = v.parcelas ? v.parcelas.find(p => p.status === 'pendente') : null;
+    return `
     <tr>
       <td class="mono">${escapeHTML(v.numero)}</td>
       <td>${formatDateBR(v.data)}</td>
       <td>${escapeHTML(v.cliente || '-')}</td>
       <td>${v.itens.length} item${v.itens.length !== 1 ? 's' : ''}</td>
       <td class="num">${formatBRL(v.total)}</td>
+      <td class="num" style="color:${saldo > 0 ? 'var(--warning)' : 'var(--success)'};">${formatBRL(recebido)}</td>
       <td>${escapeHTML(v.pagamento || '-')}</td>
-      <td><span class="badge badge-${v.status}">${v.status === 'pago' ? 'Pago' : 'Pendente'}</span></td>
+      <td><span class="badge badge-${v.status === 'pago' ? 'pago' : v.status === 'parcelado' ? 'info' : 'pendente'}">${statusLabel(v)}</span></td>
       <td class="row-actions">
+        ${proxParcela ? `<button class="icon-btn" data-pay-parcela="${v.id}" title="Receber parcela ${proxParcela.numero}ª">${icon('check')}</button>` : ''}
         ${v.status === 'pendente' ? `<button class="icon-btn" data-pay="${v.id}" title="Marcar como pago">${icon('check')}</button>` : ''}
-        <button class="icon-btn" data-view="${v.id}" title="Ver nota">${icon('eye')}</button>
+        <button class="icon-btn" data-view="${v.id}" title="Ver comprovante">${icon('eye')}</button>
         <button class="icon-btn danger" data-del="${v.id}" title="Excluir">${icon('trash')}</button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   tbody.querySelectorAll('[data-pay]').forEach(btn => btn.addEventListener('click', () => marcarVendaPaga(btn.dataset.pay)));
+  tbody.querySelectorAll('[data-pay-parcela]').forEach(btn => btn.addEventListener('click', () => receberParcela(btn.dataset.payParcela)));
   tbody.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', () => renderNota(db.vendas.find(v => v.id === btn.dataset.view), db)));
   tbody.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => excluirVenda(btn.dataset.del)));
 }

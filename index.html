@@ -3,14 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>M&amp;M Cosméticos · Gestão</title>
+<title>M&M Cosméticos · Gestão Premium</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js" defer></script>
 </head>
 <body>
 
+<!-- ============ TELA DE AUTENTICAÇÃO ============ -->
 <div class="auth-screen" id="auth-screen">
   <div class="auth-card">
     <div class="auth-brand">
@@ -22,8 +24,8 @@
   </div>
 </div>
 
+<!-- ============ APLICATIVO ============ -->
 <div id="app" class="app" hidden>
-
   <aside class="sidebar" id="sidebar">
     <div class="brand">
       <div class="brand-mark" id="brand-mark">M&amp;M</div>
@@ -32,51 +34,61 @@
         <span>Gestão da loja</span>
       </div>
     </div>
-
     <nav class="nav" id="main-nav">
       <button class="nav-item active" data-view="painel">
-        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><rect x="2" y="2" width="7" height="7" rx="1.4"/><rect x="11" y="2" width="7" height="7" rx="1.4"/><rect x="2" y="11" width="7" height="7" rx="1.4"/><rect x="11" y="11" width="7" height="7" rx="1.4"/></svg>
+        <svg viewBox="0 0 20 20" class="nav-icon"><rect x="2" y="2" width="7" height="7" rx="1.4"/><rect x="11" y="2" width="7" height="7" rx="1.4"/><rect x="2" y="11" width="7" height="7" rx="1.4"/><rect x="11" y="11" width="7" height="7" rx="1.4"/></svg>
         Painel
       </button>
+      <button class="nav-item" data-view="pdv">
+        <svg viewBox="0 0 20 20" class="nav-icon"><path d="M3 4h14l-1.2 11a2 2 0 0 1-2 1.8H6.2a2 2 0 0 1-2-1.8L3 4Z"/><path d="M7 4V3a3 3 0 0 1 6 0v1"/></svg>
+        PDV · Caixa
+      </button>
       <button class="nav-item" data-view="estoque">
-        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><path d="M2.5 6.5 10 2.5l7.5 4v7L10 17.5l-7.5-4z"/><path d="M2.5 6.5 10 10.5l7.5-4"/><path d="M10 10.5v7"/></svg>
+        <svg viewBox="0 0 20 20" class="nav-icon"><path d="M2.5 6.5 10 2.5l7.5 4v7L10 17.5l-7.5-4z"/><path d="M2.5 6.5 10 10.5l7.5-4"/><path d="M10 10.5v7"/></svg>
         Estoque
       </button>
       <button class="nav-item" data-view="vendas">
-        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><path d="M11 2.5h4.5a2 2 0 0 1 2 2V9a2 2 0 0 1-.6 1.4l-7.6 7.6a2 2 0 0 1-2.8 0l-4.5-4.5a2 2 0 0 1 0-2.8l7.6-7.6A2 2 0 0 1 11 2.5Z"/><circle cx="13.4" cy="6.6" r="1.15" fill="currentColor" stroke="none"/></svg>
+        <svg viewBox="0 0 20 20" class="nav-icon"><path d="M11 2.5h4.5a2 2 0 0 1 2 2V9a2 2 0 0 1-.6 1.4l-7.6 7.6a2 2 0 0 1-2.8 0l-4.5-4.5a2 2 0 0 1 0-2.8l7.6-7.6A2 2 0 0 1 11 2.5Z"/><circle cx="13.4" cy="6.6" r="1.15" fill="currentColor" stroke="none"/></svg>
         Vendas
       </button>
       <button class="nav-item" data-view="clientes">
-        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><circle cx="10" cy="7.2" r="3.2"/><path d="M3.5 17c.8-3.4 3.4-5.2 6.5-5.2s5.7 1.8 6.5 5.2"/></svg>
+        <svg viewBox="0 0 20 20" class="nav-icon"><circle cx="10" cy="7.2" r="3.2"/><path d="M3.5 17c.8-3.4 3.4-5.2 6.5-5.2s5.7 1.8 6.5 5.2"/></svg>
         Clientes
       </button>
       <button class="nav-item" data-view="compras">
-        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><path d="M10 2.5v8.5"/><path d="M6.2 7.7 10 11.5l3.8-3.8"/><path d="M3 13.2v2.3A2.5 2.5 0 0 0 5.5 18h9a2.5 2.5 0 0 0 2.5-2.5v-2.3"/></svg>
+        <svg viewBox="0 0 20 20" class="nav-icon"><path d="M10 2.5v8.5"/><path d="M6.2 7.7 10 11.5l3.8-3.8"/><path d="M3 13.2v2.3A2.5 2.5 0 0 0 5.5 18h9a2.5 2.5 0 0 0 2.5-2.5v-2.3"/></svg>
         Compras
       </button>
       <button class="nav-item" data-view="pendencias">
-        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><circle cx="10" cy="10" r="7.5"/><path d="M10 5.8V10l3 2"/></svg>
+        <svg viewBox="0 0 20 20" class="nav-icon"><circle cx="10" cy="10" r="7.5"/><path d="M10 5.8V10l3 2"/></svg>
         Pendências
         <span class="nav-badge" id="nav-badge-pend" hidden>0</span>
       </button>
       <button class="nav-item" data-view="financeiro">
-        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><path d="M2.5 15.5 7.2 10l3 2.5 6-7"/><path d="M13 5.5h3.2v3.2"/></svg>
+        <svg viewBox="0 0 20 20" class="nav-icon"><path d="M2.5 15.5 7.2 10l3 2.5 6-7"/><path d="M13 5.5h3.2v3.2"/></svg>
         Financeiro
       </button>
+      <button class="nav-item" data-view="analises">
+        <svg viewBox="0 0 20 20" class="nav-icon"><path d="M4 16V9M10 16V4M16 16v-5"/><circle cx="4" cy="9" r="1.2" fill="currentColor" stroke="none"/><circle cx="10" cy="4" r="1.2" fill="currentColor" stroke="none"/><circle cx="16" cy="11" r="1.2" fill="currentColor" stroke="none"/></svg>
+        Análises
+      </button>
+      <button class="nav-item" data-view="catalogo">
+        <svg viewBox="0 0 20 20" class="nav-icon"><rect x="3" y="3" width="6.5" height="6.5" rx="1.2"/><rect x="10.5" y="3" width="6.5" height="6.5" rx="1.2"/><rect x="3" y="10.5" width="6.5" height="6.5" rx="1.2"/><rect x="10.5" y="10.5" width="6.5" height="6.5" rx="1.2"/></svg>
+        Catálogo
+      </button>
       <button class="nav-item" data-view="relatorios">
-        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><path d="M4 3h12v14H4z"/><path d="M7 7h6M7 10h6M7 13h4"/></svg>
+        <svg viewBox="0 0 20 20" class="nav-icon"><path d="M4 3h12v14H4z"/><path d="M7 7h6M7 10h6M7 13h4"/></svg>
         Relatórios
       </button>
       <button class="nav-item" data-view="registros">
-        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><path d="M5.5 2.5h6l3 3V17.5h-9z"/><path d="M11.5 2.5v3h3"/><path d="M7.5 10.2h5M7.5 13.2h5"/></svg>
+        <svg viewBox="0 0 20 20" class="nav-icon"><path d="M5.5 2.5h6l3 3V17.5h-9z"/><path d="M11.5 2.5v3h3"/><path d="M7.5 10.2h5M7.5 13.2h5"/></svg>
         Registros
       </button>
       <button class="nav-item" data-view="config">
-        <svg viewBox="0 0 20 20" class="nav-icon nav-icon-refined"><circle cx="10" cy="10" r="2.5"/><path d="M10 2.8v2M10 15.2v2M17.2 10h-2M4.8 10h-2M15.1 4.9l-1.4 1.4M6.3 13.7l-1.4 1.4M15.1 15.1l-1.4-1.4M6.3 6.3 4.9 4.9"/></svg>
+        <svg viewBox="0 0 20 20" class="nav-icon"><circle cx="10" cy="10" r="2.5"/><path d="M10 2.8v2M10 15.2v2M17.2 10h-2M4.8 10h-2M15.1 4.9l-1.4 1.4M6.3 13.7l-1.4 1.4M15.1 15.1l-1.4-1.4M6.3 6.3 4.9 4.9"/></svg>
         Configurações
       </button>
     </nav>
-
     <div class="sidebar-foot">
       <div class="sidebar-user">
         <div class="avatar" id="sidebar-user-avatar">–</div>
@@ -98,67 +110,124 @@
         </div>
       </div>
       <div class="topbar-actions">
-            <button class="notification-btn" id="btn-notificacoes" title="Notificações">
-              <svg class="notification-icon" viewBox="0 0 20 20"><path d="M5.2 8.5a4.8 4.8 0 0 1 9.6 0v3l1.3 1.8H3.9l1.3-1.8z"/><path d="M8 15.2a2.2 2.2 0 0 0 4 0"/></svg><span class="notification-count" id="notification-count" hidden>0</span>
-            </button>
-            <div id="topbar-actions"></div>
-          </div>
+        <button class="notification-btn" id="btn-notificacoes" title="Notificações">
+          <svg class="notification-icon" viewBox="0 0 20 20"><path d="M5.2 8.5a4.8 4.8 0 0 1 9.6 0v3l1.3 1.8H3.9l1.3-1.8z"/><path d="M8 15.2a2.2 2.2 0 0 0 4 0"/></svg><span class="notification-count" id="notification-count" hidden>0</span>
+        </button>
+        <div id="topbar-actions"></div>
+      </div>
     </header>
 
     <div class="view-wrap">
 
+      <!-- ============ PAINEL ============ -->
       <section class="view active" id="view-painel">
         <div class="kpi-row">
-          <div class="kpi">
-            <span class="kpi-label">Receita do mês</span>
-            <strong class="kpi-value" id="kpi-receita-mes">R$ 0,00</strong>
-            <span class="kpi-note">vendas pagas</span>
-          </div>
-          <div class="kpi">
-            <span class="kpi-label">Lucro bruto do mês</span>
-            <strong class="kpi-value" id="kpi-lucro-mes">R$ 0,00</strong>
-            <span class="kpi-note">receita − custo da mercadoria</span>
-          </div>
-          <div class="kpi warn">
-            <span class="kpi-label">Pendências em aberto</span>
-            <strong class="kpi-value" id="kpi-pend-total">R$ 0,00</strong>
-            <span class="kpi-note" id="kpi-pend-note">0 notas</span>
-          </div>
-          <div class="kpi">
-            <span class="kpi-label">Estoque baixo</span>
-            <strong class="kpi-value" id="kpi-estoque-baixo">0</strong>
-            <span class="kpi-note">produtos no limite</span>
-          </div>
+          <div class="kpi"><span class="kpi-label">Receita do mês</span><strong class="kpi-value" id="kpi-receita-mes">R$ 0,00</strong><span class="kpi-note">vendas pagas</span></div>
+          <div class="kpi"><span class="kpi-label">Lucro bruto do mês</span><strong class="kpi-value" id="kpi-lucro-mes">R$ 0,00</strong><span class="kpi-note">receita − custo da mercadoria</span></div>
+          <div class="kpi warn"><span class="kpi-label">Pendências em aberto</span><strong class="kpi-value" id="kpi-pend-total">R$ 0,00</strong><span class="kpi-note" id="kpi-pend-note">0 notas</span></div>
+          <div class="kpi"><span class="kpi-label">Estoque baixo</span><strong class="kpi-value" id="kpi-estoque-baixo">0</strong><span class="kpi-note">produtos no limite</span></div>
         </div>
-
         <div class="grid-2">
-          <div class="panel">
-            <div class="panel-head"><h2>Vendas · últimos 14 dias</h2></div>
-            <div id="painel-chart" class="chart-mount"></div>
-          </div>
-          <div class="panel">
-            <div class="panel-head"><h2>Estoque baixo</h2><button class="link-btn" data-view-link="estoque">ver estoque</button></div>
-            <div id="painel-estoque-baixo" class="stack-list"></div>
-          </div>
+          <div class="panel"><div class="panel-head"><h2>Vendas · últimos 14 dias</h2></div><div id="painel-chart" class="chart-mount"></div></div>
+          <div class="panel"><div class="panel-head"><h2>Estoque baixo</h2><button class="link-btn" data-view-link="estoque">ver estoque</button></div><div id="painel-estoque-baixo" class="stack-list"></div></div>
         </div>
-
         <div class="grid-2">
+          <div class="panel"><div class="panel-head"><h2>Vendas recentes</h2><button class="link-btn" data-view-link="vendas">ver todas</button></div>
+            <div class="table-scroll"><table class="table"><thead><tr><th>Nota</th><th>Data</th><th>Cliente</th><th>Total</th><th>Status</th></tr></thead><tbody id="painel-vendas-recentes"></tbody></table></div>
+          </div>
+          <div class="panel"><div class="panel-head"><h2>Mais vendidos</h2></div><div id="painel-mais-vendidos" class="stack-list"></div></div>
+        </div>
+      </section>
+
+      <!-- ============ PDV (PONTO DE VENDA) ============ -->
+      <section class="view" id="view-pdv">
+        <div class="pdv-layout">
           <div class="panel">
-            <div class="panel-head"><h2>Vendas recentes</h2><button class="link-btn" data-view-link="vendas">ver todas</button></div>
-            <div class="table-scroll">
-              <table class="table">
-                <thead><tr><th>Nota</th><th>Data</th><th>Cliente</th><th>Total</th><th>Status</th></tr></thead>
-                <tbody id="painel-vendas-recentes"></tbody>
+            <div class="panel-head"><h2>Itens da venda</h2><button class="btn btn-ghost btn-sm" id="pdv-limpar">Limpar carrinho</button></div>
+            <div style="padding: 16px 20px 0;">
+              <div class="pdv-scan-box" id="pdv-scan-box">
+                <div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-bottom:10px; flex-wrap:wrap;">
+                  <button class="btn btn-outline btn-sm" id="pdv-btn-camera">📷 Ler com câmera</button>
+                  <button class="btn btn-outline btn-sm" id="pdv-btn-camera-stop" hidden>Parar câmera</button>
+                  <span class="field-hint">Ou passe o leitor físico / digite o código</span>
+                </div>
+                <input type="text" id="pdv-codigo" placeholder="Passe o código de barras ou digite e Enter" autocomplete="off">
+                <div class="barcode-overlay" id="pdv-camera-wrap" hidden style="margin-top:12px;">
+                  <video id="barcode-video" muted playsinline></video>
+                  <div class="barcode-scan-line"></div>
+                </div>
+              </div>
+              <div class="add-item-row">
+                <label class="field"><span>Ou selecione o produto</span><select id="pdv-produto"></select></label>
+                <label class="field"><span>Qtd</span><input type="number" id="pdv-qtd" min="1" step="1" value="1"></label>
+                <button class="btn btn-outline" id="pdv-add">Adicionar</button>
+              </div>
+            </div>
+            <div style="padding: 0 20px 20px;">
+              <table class="cart-table">
+                <thead><tr><th>Produto</th><th>Qtd</th><th>Vl. unit.</th><th>Subtotal</th><th></th></tr></thead>
+                <tbody id="pdv-carrinho-body"></tbody>
+                <tfoot><tr><td colspan="3">Subtotal</td><td colspan="2" id="pdv-subtotal">R$ 0,00</td></tr></tfoot>
               </table>
+              <p class="empty-hint" id="pdv-empty" hidden>Carrinho vazio. Escaneie um produto ou selecione acima.</p>
             </div>
           </div>
+
           <div class="panel">
-            <div class="panel-head"><h2>Mais vendidos</h2></div>
-            <div id="painel-mais-vendidos" class="stack-list"></div>
+            <div class="panel-head"><h2>Pagamento</h2></div>
+            <div style="padding: 16px 20px 20px;">
+              <div class="form-grid">
+                <label class="field wide"><span>Cliente</span><select id="pdv-cliente"><option value="">Cliente avulso</option></select></label>
+                <label class="field"><span>Data</span><input type="date" id="pdv-data"></label>
+                <label class="field"><span>Desconto (R$)</span><input type="number" id="pdv-desconto" min="0" step="0.01" value="0"></label>
+                <label class="field wide"><span>Forma de pagamento</span>
+                  <select id="pdv-forma">
+                    <option value="Dinheiro">Dinheiro</option>
+                    <option value="PIX">PIX</option>
+                    <option value="Cartão de débito">Cartão de débito</option>
+                    <option value="Cartão de crédito à vista">Cartão de crédito à vista</option>
+                    <option value="Cartão de crédito parcelado">Cartão de crédito parcelado</option>
+                    <option value="Pendente">A prazo / pendente</option>
+                    <option value="Combinado">Pagamento combinado</option>
+                  </select>
+                </label>
+              </div>
+              <div id="pdv-parcelas-wrap" hidden>
+                <div class="form-grid">
+                  <label class="field"><span>Parcelas</span>
+                    <select id="pdv-n-parcelas"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>8</option><option>10</option><option>12</option></select>
+                  </label>
+                  <label class="field"><span>Acréscimo/mês (%)</span><input type="number" id="pdv-juros" min="0" step="0.1" value="0"></label>
+                  <label class="field"><span>1º vencimento</span><input type="date" id="pdv-primeiro-venc"></label>
+                </div>
+                <div class="parcelas-preview" id="pdv-parcelas-preview"></div>
+              </div>
+              <div id="pdv-combinado-wrap" hidden>
+                <p class="panel-desc">Divida o total entre duas formas de pagamento.</p>
+                <div class="pagto-split-row">
+                  <label class="field"><span>1ª forma</span><select id="pdv-forma1"><option>Dinheiro</option><option>PIX</option><option>Cartão de débito</option><option>Cartão de crédito à vista</option></select></label>
+                  <label class="field"><span>Valor 1ª (R$)</span><input type="number" id="pdv-valor1" min="0" step="0.01"></label>
+                </div>
+                <div class="pagto-split-row" style="margin-top:8px;">
+                  <label class="field"><span>2ª forma</span><select id="pdv-forma2"><option>PIX</option><option>Dinheiro</option><option>Cartão de débito</option><option>Cartão de crédito à vista</option></select></label>
+                  <label class="field"><span>Valor 2ª (R$)</span><input type="number" id="pdv-valor2" min="0" step="0.01" readonly></label>
+                </div>
+              </div>
+              <div class="pdv-totals">
+                <div class="pdv-total-row"><span>Subtotal</span><b id="pdv-t-subtotal">R$ 0,00</b></div>
+                <div class="pdv-total-row"><span>Desconto</span><b id="pdv-t-desconto">- R$ 0,00</b></div>
+                <div class="pdv-total-row grand"><span>Total a receber</span><b id="pdv-t-total">R$ 0,00</b></div>
+              </div>
+              <div class="btn-row">
+                <button class="btn btn-ghost" id="pdv-cancelar">Cancelar</button>
+                <button class="btn btn-primary" id="pdv-finalizar">Finalizar venda</button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
+      <!-- ============ ESTOQUE ============ -->
       <section class="view" id="view-estoque">
         <div class="kpi-row kpi-row-3">
           <div class="kpi"><span class="kpi-label">Produtos cadastrados</span><strong class="kpi-value" id="est-kpi-total">0</strong></div>
@@ -183,18 +252,19 @@
         </div>
       </section>
 
+      <!-- ============ VENDAS ============ -->
       <section class="view" id="view-vendas">
         <div class="panel">
           <div class="panel-head">
             <h2>Vendas registradas</h2>
             <div class="filters">
               <div class="search-field"><svg viewBox="0 0 20 20" class="icon-sm"><circle cx="8.5" cy="8.5" r="5.3"/><path d="m16 16-3.3-3.3"/></svg><input type="text" id="vendas-busca" placeholder="Buscar cliente"></div>
-              <select id="vendas-filtro-status"><option value="">Todos os status</option><option value="pago">Pago</option><option value="pendente">Pendente</option></select>
+              <select id="vendas-filtro-status"><option value="">Todos os status</option><option value="pago">Pago</option><option value="pendente">Pendente</option><option value="parcelado">Parcelado</option></select>
             </div>
           </div>
           <div class="table-scroll">
             <table class="table">
-              <thead><tr><th>Nota</th><th>Data</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Pagamento</th><th>Status</th><th></th></tr></thead>
+              <thead><tr><th>Nota</th><th>Data</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Recebido</th><th>Pagamento</th><th>Status</th><th></th></tr></thead>
               <tbody id="vendas-tbody"></tbody>
             </table>
           </div>
@@ -202,6 +272,7 @@
         </div>
       </section>
 
+      <!-- ============ CLIENTES ============ -->
       <section class="view" id="view-clientes">
         <div class="kpi-row kpi-row-3">
           <div class="kpi"><span class="kpi-label">Clientes cadastrados</span><strong class="kpi-value" id="cli-kpi-total">0</strong></div>
@@ -223,6 +294,7 @@
         </div>
       </section>
 
+      <!-- ============ COMPRAS ============ -->
       <section class="view" id="view-compras">
         <div class="panel">
           <div class="panel-head">
@@ -242,6 +314,7 @@
         </div>
       </section>
 
+      <!-- ============ PENDÊNCIAS ============ -->
       <section class="view" id="view-pendencias">
         <div class="kpi-row kpi-row-3">
           <div class="kpi"><span class="kpi-label">A receber</span><strong class="kpi-value" id="pend-kpi-receber">R$ 0,00</strong></div>
@@ -249,7 +322,7 @@
           <div class="kpi" id="pend-kpi-saldo-card"><span class="kpi-label">Saldo entre pendências</span><strong class="kpi-value" id="pend-kpi-saldo">R$ 0,00</strong></div>
         </div>
         <div class="panel">
-          <div class="panel-head"><h2>Notas pendentes</h2></div>
+          <div class="panel-head"><h2>Notas e parcelas pendentes</h2></div>
           <div class="table-scroll">
             <table class="table">
               <thead><tr><th>Tipo</th><th>Nota</th><th>Vencimento</th><th>Cliente/Fornecedor</th><th>Valor</th><th></th></tr></thead>
@@ -260,6 +333,7 @@
         </div>
       </section>
 
+      <!-- ============ FINANCEIRO ============ -->
       <section class="view" id="view-financeiro">
         <div class="panel">
           <div class="panel-head"><h2>Financeiro</h2>
@@ -268,7 +342,7 @@
         </div>
         <div class="kpi-row">
           <div class="kpi"><span class="kpi-label">Receita recebida</span><strong class="kpi-value" id="fin-kpi-receita">R$ 0,00</strong></div>
-          <div class="kpi"><span class="kpi-label">Custo da mercadoria vendida</span><strong class="kpi-value" id="fin-kpi-cmv">R$ 0,00</strong></div>
+          <div class="kpi"><span class="kpi-label">A receber (previsto)</span><strong class="kpi-value" id="fin-kpi-previsto">R$ 0,00</strong></div>
           <div class="kpi"><span class="kpi-label">Lucro bruto</span><strong class="kpi-value" id="fin-kpi-lucro">R$ 0,00</strong></div>
           <div class="kpi"><span class="kpi-label">Compras pagas no período</span><strong class="kpi-value" id="fin-kpi-compras">R$ 0,00</strong></div>
         </div>
@@ -288,6 +362,56 @@
         </div>
       </section>
 
+      <!-- ============ ANÁLISES / INTELIGÊNCIA COMERCIAL ============ -->
+      <section class="view" id="view-analises">
+        <div class="panel">
+          <div class="panel-head">
+            <div><h2>Inteligência comercial</h2><p class="panel-desc">Indicadores baseados nos dados reais do sistema. Filtre por período.</p></div>
+            <div class="filters">
+              <label class="field"><span>De</span><input type="date" id="an-data-inicio"></label>
+              <label class="field"><span>Até</span><input type="date" id="an-data-fim"></label>
+              <button class="btn btn-outline btn-sm" id="an-exportar">Exportar CSV</button>
+            </div>
+          </div>
+        </div>
+        <div class="kpi-row kpi-row-3">
+          <div class="kpi"><span class="kpi-label">Ticket médio</span><strong class="kpi-value" id="an-kpi-ticket">R$ 0,00</strong><span class="kpi-note" id="an-kpi-ticket-note">— vendas</span></div>
+          <div class="kpi"><span class="kpi-label">Novos clientes no período</span><strong class="kpi-value" id="an-kpi-novos">0</strong></div>
+          <div class="kpi"><span class="kpi-label">Clientes inativos (+60d)</span><strong class="kpi-value" id="an-kpi-inativos">0</strong></div>
+        </div>
+        <div class="grid-2">
+          <div class="panel"><div class="panel-head"><h2>🏆 Clientes que mais gastaram</h2></div><div id="an-ranking-valor" class="stack-list"></div></div>
+          <div class="panel"><div class="panel-head"><h2>🔁 Clientes mais frequentes</h2></div><div id="an-ranking-freq" class="stack-list"></div></div>
+        </div>
+        <div class="grid-2">
+          <div class="panel"><div class="panel-head"><h2>📦 Produtos mais vendidos (qtd)</h2></div><div id="an-prod-qtd" class="stack-list"></div></div>
+          <div class="panel"><div class="panel-head"><h2>💰 Produtos que mais geraram receita</h2></div><div id="an-prod-receita" class="stack-list"></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>💡 Sugestões baseadas em dados</h2></div>
+          <div id="an-sugestoes" class="summary-list"></div>
+        </div>
+      </section>
+
+      <!-- ============ CATÁLOGO ============ -->
+      <section class="view" id="view-catalogo">
+        <div class="panel">
+          <div class="panel-head">
+            <div><h2>Catálogo virtual</h2><p class="panel-desc">Produtos disponíveis para compartilhar com clientes.</p></div>
+            <div class="filters">
+              <div class="search-field"><svg viewBox="0 0 20 20" class="icon-sm"><circle cx="8.5" cy="8.5" r="5.3"/><path d="m16 16-3.3-3.3"/></svg><input type="text" id="cat-busca" placeholder="Buscar no catálogo"></div>
+              <select id="cat-filtro-categoria"><option value="">Todas as categorias</option></select>
+              <button class="btn btn-outline btn-sm" id="cat-compartilhar">Compartilhar catálogo</button>
+            </div>
+          </div>
+          <div style="padding: 20px;">
+            <div class="catalog-grid" id="catalogo-grid"></div>
+            <p class="empty-hint" id="catalogo-empty" hidden>Nenhum produto disponível no catálogo.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ RELATÓRIOS ============ -->
       <section class="view" id="view-relatorios">
         <div class="kpi-row">
           <div class="kpi"><span class="kpi-label">Vendas no período</span><strong class="kpi-value" id="rel-kpi-vendas">0</strong></div>
@@ -298,89 +422,116 @@
         <div class="panel">
           <div class="panel-head">
             <div><h2>Relatório de vendas</h2><p class="panel-desc">Filtre por período e exporte os resultados.</p></div>
-            <div class="report-actions">
-              <button class="btn btn-outline" id="btn-relatorio-csv">Exportar CSV</button>
-              <button class="btn btn-primary" id="btn-relatorio-imprimir">Imprimir / PDF</button>
+            <div class="filters">
+              <button class="btn btn-outline btn-sm" id="btn-relatorio-csv">Exportar CSV</button>
+              <button class="btn btn-primary btn-sm" id="btn-relatorio-imprimir">Imprimir / PDF</button>
             </div>
           </div>
-          <div class="report-filters">
-            <label class="field"><span>Data inicial</span><input type="date" id="rel-data-inicio"></label>
-            <label class="field"><span>Data final</span><input type="date" id="rel-data-fim"></label>
-            <label class="field"><span>Status</span><select id="rel-status"><option value="">Todos</option><option value="pago">Pago</option><option value="pendente">Pendente</option></select></label>
+          <div style="padding: 0 20px 16px;">
+            <div class="form-grid">
+              <label class="field"><span>Data inicial</span><input type="date" id="rel-data-inicio"></label>
+              <label class="field"><span>Data final</span><input type="date" id="rel-data-fim"></label>
+              <label class="field"><span>Status</span><select id="rel-status"><option value="">Todos</option><option value="pago">Pago</option><option value="pendente">Pendente</option><option value="parcelado">Parcelado</option></select></label>
+            </div>
           </div>
         </div>
         <div class="grid-2">
           <div class="panel"><div class="panel-head"><h2>Receita por dia</h2></div><div id="rel-chart" class="chart-mount"></div></div>
           <div class="panel"><div class="panel-head"><h2>Resumo do período</h2></div><div id="rel-resumo" class="summary-list"></div></div>
         </div>
-        <div class="panel" id="relatorio-print-area">
-          <div class="panel-head"><h2>Detalhamento</h2></div>
-          <div class="table-scroll"><table class="table">
-            <thead><tr><th>Data</th><th>Nota</th><th>Cliente</th><th>Status</th><th>Itens</th><th>Total</th></tr></thead>
-            <tbody id="rel-tbody"></tbody>
-          </table></div>
-          <p class="empty-hint" id="rel-empty" hidden>Nenhuma venda encontrada no período.</p>
+        <div class="panel">
+          <div class="panel-head"><h2>Detalhamento de vendas</h2></div>
+          <div class="table-scroll">
+            <table class="table">
+              <thead><tr><th>Nota</th><th>Data</th><th>Cliente</th><th>Itens</th><th>Subtotal</th><th>Desconto</th><th>Total</th><th>Pagamento</th><th>Status</th></tr></thead>
+              <tbody id="rel-tbody"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="rel-empty" hidden>Sem vendas no período selecionado.</p>
         </div>
       </section>
 
+      <!-- ============ REGISTROS ============ -->
       <section class="view" id="view-registros">
         <div class="panel">
-          <div class="panel-head">
-            <h2>Registros de atividade</h2>
-            <div class="search-field"><svg viewBox="0 0 20 20" class="icon-sm"><circle cx="8.5" cy="8.5" r="5.3"/><path d="m16 16-3.3-3.3"/></svg><input type="text" id="registros-busca" placeholder="Buscar usuário ou ação"></div>
-          </div>
+          <div class="panel-head"><h2>Registros de atividade</h2><button class="btn btn-outline btn-sm" id="btn-limpar-logs">Limpar registros</button></div>
           <div class="table-scroll">
             <table class="table">
-              <thead><tr><th>Data e hora</th><th>Usuário</th><th>Ação</th><th></th></tr></thead>
+              <thead><tr><th>Data</th><th>Usuário</th><th>Ação</th><th>Detalhes</th></tr></thead>
               <tbody id="registros-tbody"></tbody>
             </table>
           </div>
-          <p class="empty-hint" id="registros-empty" hidden>Nenhum registro ainda.</p>
+          <p class="empty-hint" id="registros-empty" hidden>Nenhum registro de atividade.</p>
         </div>
       </section>
 
+      <!-- ============ CONFIGURAÇÕES ============ -->
       <section class="view" id="view-config">
-        <div class="panel">
-          <div class="panel-head"><h2>Dados da loja</h2></div>
-          <p class="panel-desc">Essas informações aparecem no cabeçalho das notas emitidas.</p>
-          <div class="form-grid">
-            <label class="field"><span>Nome da loja</span><input type="text" id="cfg-nome-loja"></label>
-            <label class="field"><span>Telefone / WhatsApp</span><input type="text" id="cfg-telefone"></label>
-            <label class="field wide"><span>Endereço</span><input type="text" id="cfg-endereco"></label>
-            <label class="field"><span>Alerta padrão de estoque mínimo</span><input type="number" id="cfg-estoque-minimo" min="0" step="1"></label>
-            <label class="field file-field"><span>Logo da loja (opcional)</span><input type="file" id="cfg-logo-input" accept="image/*"></label>
+        <div class="tabs" id="config-tabs">
+          <button class="tab-btn active" data-tab="cfg-geral">Geral</button>
+          <button class="tab-btn" data-tab="cfg-mensagens">Mensagens / WhatsApp</button>
+          <button class="tab-btn" data-tab="cfg-usuarios">Usuários</button>
+          <button class="tab-btn" data-tab="cfg-dados">Backup e dados</button>
+        </div>
+
+        <div class="config-tab" id="cfg-geral">
+          <div class="panel">
+            <div class="panel-head"><h2>Dados da loja</h2></div>
+            <div style="padding: 20px;">
+              <div class="form-grid">
+                <label class="field"><span>Nome da loja</span><input type="text" id="cfg-nome-loja"></label>
+                <label class="field"><span>Telefone / WhatsApp</span><input type="text" id="cfg-telefone"></label>
+                <label class="field wide"><span>Endereço</span><input type="text" id="cfg-endereco"></label>
+                <label class="field"><span>Alerta padrão de estoque mínimo</span><input type="number" id="cfg-estoque-minimo" min="0" step="1"></label>
+                <label class="field"><span>Mensagem de agradecimento (comprovante)</span><input type="text" id="cfg-msg-agradecimento" placeholder="Obrigada pela preferência!"></label>
+                <label class="field file-field"><span>Logo da loja (aparece nos comprovantes)</span><input type="file" id="cfg-logo-input" accept="image/*"></label>
+              </div>
+              <div id="cfg-logo-preview" style="margin-top:10px;"></div>
+              <div class="btn-row"><button class="btn btn-primary" id="btn-salvar-config">Salvar configurações</button></div>
+            </div>
           </div>
-          <div class="btn-row">
-            <button class="btn btn-primary" id="btn-salvar-config">Salvar configurações</button>
-            <button class="btn btn-ghost" id="btn-remover-logo">Remover logo</button>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head"><h2>Categorias de produto</h2></div>
-          <div class="form-row"><input type="text" id="cfg-nova-categoria" placeholder="Nova categoria, ex: Skincare"><button class="btn btn-outline" id="btn-add-categoria">Adicionar</button></div>
-          <div class="chip-row" id="cfg-categorias-chips"></div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head"><h2>Usuários do sistema</h2><button class="btn btn-outline btn-sm" id="btn-novo-usuario">+ Novo usuário</button></div>
-          <p class="panel-desc">Cada pessoa da equipe deve ter seu próprio usuário — é o que identifica quem fez cada registro.</p>
-          <div id="usuarios-lista"></div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head"><h2>Backup dos dados</h2></div>
-          <p class="panel-desc">Os dados ficam salvos no navegador deste computador. Exporte um backup periodicamente para não correr risco de perder o histórico.</p>
-          <div class="btn-row">
-            <button class="btn btn-outline" id="btn-exportar-dados">Exportar backup (.json)</button>
-            <label class="btn btn-outline file-btn">Importar backup<input type="file" id="cfg-importar-input" accept="application/json" hidden></label>
+          <div class="panel">
+            <div class="panel-head"><h2>Categorias de produtos</h2></div>
+            <div style="padding: 20px;">
+              <div class="form-row"><input type="text" id="cfg-nova-categoria" placeholder="Nova categoria, ex: Skincare"><button class="btn btn-outline" id="btn-add-categoria">Adicionar</button></div>
+              <div class="chip-row" id="cfg-categorias-chips"></div>
+            </div>
           </div>
         </div>
 
-        <div class="panel panel-danger">
-          <div class="panel-head"><h2>Zona de risco</h2></div>
-          <p class="panel-desc">Apaga produtos, vendas, compras e clientes salvos neste navegador. Essa ação não pode ser desfeita.</p>
-          <button class="btn btn-danger" id="btn-reset-sistema">Apagar todos os dados</button>
+        <div class="config-tab" id="cfg-mensagens" hidden>
+          <div class="panel">
+            <div class="panel-head"><div><h2>Modelos de mensagem</h2><p class="panel-desc">Personalize as mensagens enviadas aos clientes. Clique numa variável para inseri-la.</p></div>
+              <button class="btn btn-outline btn-sm" id="msg-restaurar">Restaurar padrões</button></div>
+            <div style="padding: 20px;" id="msg-templates-wrap"></div>
+          </div>
+        </div>
+
+        <div class="config-tab" id="cfg-usuarios" hidden>
+          <div class="panel">
+            <div class="panel-head"><h2>Usuários do sistema</h2><button class="btn btn-primary btn-sm" id="btn-novo-usuario">Novo usuário</button></div>
+            <div class="table-scroll">
+              <table class="table">
+                <thead><tr><th>Nome</th><th>Usuário</th><th>E-mail</th><th>Perfil</th><th>Criado em</th><th></th></tr></thead>
+                <tbody id="cfg-usuarios-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="config-tab" id="cfg-dados" hidden>
+          <div class="panel">
+            <div class="panel-head"><h2>Backup e dados</h2></div>
+            <div style="padding: 20px;">
+              <p class="panel-desc">Exporte um backup completo dos dados (JSON) ou importe um backup anterior. Os dados ficam salvos no navegador (localStorage).</p>
+              <div class="btn-row" style="justify-content:flex-start;">
+                <button class="btn btn-outline" id="btn-exportar-backup">Exportar backup (JSON)</button>
+                <label class="btn btn-outline file-btn">Importar backup<input type="file" id="cfg-importar-input" accept="application/json" hidden></label>
+                <button class="btn btn-danger" id="btn-limpar-dados">Limpar todos os dados</button>
+              </div>
+              <p class="field-hint" style="margin-top:14px;">⚠️ Futuramente estes dados poderão ser migrados para um backend centralizado (ex.: Supabase) para sincronização entre dispositivos.</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -388,43 +539,47 @@
   </main>
 </div>
 
+<!-- ============ MODAL GENÉRICO ============ -->
 <div class="modal-overlay" id="modal-overlay">
-  <div class="modal-box" id="modal-box">
-    <button class="modal-close" id="modal-close"><svg viewBox="0 0 20 20" class="icon-sm"><path d="M5 5l10 10M15 5 5 15"/></svg></button>
+  <div class="modal-card" id="modal-card">
+    <button class="modal-close" id="modal-close" aria-label="Fechar">
+      <svg viewBox="0 0 20 20" class="icon-sm"><path d="M5 5l10 10M15 5 5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
     <div id="modal-body"></div>
   </div>
 </div>
 
+<!-- ============ MODAL DE NOTA / COMPROVANTE ============ -->
 <div class="modal-overlay" id="note-overlay">
-  <div class="modal-box note-modal-box">
-    <button class="modal-close" id="note-close"><svg viewBox="0 0 20 20" class="icon-sm"><path d="M5 5l10 10M15 5 5 15"/></svg></button>
+  <div class="modal-card wide">
+    <button class="modal-close" id="note-close" aria-label="Fechar">
+      <svg viewBox="0 0 20 20" class="icon-sm"><path d="M5 5l10 10M15 5 5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
     <div id="note-body"></div>
     <div class="note-actions">
-      <button class="btn btn-outline" id="btn-fechar-nota">Fechar</button>
-      <button class="btn btn-outline" id="btn-whatsapp-nota"><svg viewBox="0 0 20 20" class="icon-sm"><path d="M4 16.5 5 13a6.8 6.8 0 1 1 2.6 2.6z"/></svg>WhatsApp</button>
-      <button class="btn btn-primary" id="btn-imprimir-nota"><svg viewBox="0 0 20 20" class="icon-sm"><path d="M6 7.5V3h8v4.5M5 13.5H4A1.5 1.5 0 0 1 2.5 12V9A1.5 1.5 0 0 1 4 7.5h12A1.5 1.5 0 0 1 17.5 9v3a1.5 1.5 0 0 1-1.5 1.5h-1M6 11h8v6H6z"/></svg>Imprimir / salvar PDF</button>
+      <button class="btn btn-outline btn-sm" id="btn-imprimir-nota">Imprimir / PDF</button>
+      <button class="btn btn-outline btn-sm" id="btn-png-nota">Baixar imagem (PNG)</button>
+      <button class="btn btn-primary btn-sm" id="btn-whatsapp-nota">Enviar no WhatsApp</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="detail-overlay">
-  <div class="modal-box">
-    <button class="modal-close" id="detail-close"><svg viewBox="0 0 20 20" class="icon-sm"><path d="M5 5l10 10M15 5 5 15"/></svg></button>
-    <div id="detail-body"></div>
-  </div>
-</div>
-
+<div id="toast-stack"></div>
 <div id="print-area"></div>
-<div class="toast-stack" id="toast-stack"></div>
 
 <script src="app.js"></script>
 <script src="auth.js"></script>
+<script src="barcode.js"></script>
+<script src="pdv.js"></script>
 <script src="estoque.js"></script>
-<script src="clientes.js"></script>
 <script src="vendas.js"></script>
+<script src="clientes.js"></script>
 <script src="compras.js"></script>
 <script src="financeiro.js"></script>
-<script src="registros.js"></script>
 <script src="relatorios.js"></script>
+<script src="analises.js"></script>
+<script src="catalogo.js"></script>
+<script src="mensagens.js"></script>
+<script src="registros.js"></script>
 </body>
 </html>
